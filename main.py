@@ -301,7 +301,7 @@ class PumpFunBot:
                     f"Name: {info.name}\n"
                     f"Creator: <code>{info.creator[:20]}...</code>\n"
                     f"Price: {info.price_sol:.8f} SOL\n"
-                    f"Market Cap: ${info.market_cap_usd:,.0f}\n"
+                    f"FDV: ${info.market_cap_usd:,.0f}\n"
                     f"Graduated: {'Yes' if info.complete else 'No'}\n\n"
                     f"What percentage of your balance to spend?\n"
                     f"Send a number (e.g. <code>10</code> for 10%)."
@@ -1068,7 +1068,7 @@ class PumpFunBot:
             f"💰 Your SOL: <b>{sol_balance:.4f}</b>\n"
             f"🪙 Your tokens: <b>{token_balance:.0f}</b>\n"
             f"💲 Price: {info.price_sol:.8f} SOL\n"
-            f"📊 MCap: ${info.market_cap_usd:,.0f}\n\n"
+            f"📊 FDV: ${info.market_cap_usd:,.0f}\n\n"
             f"Select action:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )

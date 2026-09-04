@@ -374,11 +374,11 @@ class PumpFunClient:
             virtual_token = float(data.get("virtual_token_reserves", 1))
             price_sol = virtual_sol / virtual_token if virtual_token > 0 else 0
 
-            # Calculate market cap correctly for bonding curve tokens
-            # Market cap ≈ (virtual_sol_reserves in SOL) * SOL_price_usd * 2
-            # This matches how pump.fun frontend calculates it
+            # FDV = price per token × total supply
             sol_price_usd = 150  # approximate SOL price
-            market_cap_usd = (virtual_sol / 1_000_000_000) * sol_price_usd * 2
+            price_usd = price_sol * sol_price_usd
+            total_supply = float(data.get("total_supply", 1_000_000_000))
+            fdv_usd = price_usd * total_supply
 
             return TokenInfo(
                 mint=mint,
@@ -386,7 +386,7 @@ class PumpFunClient:
                 name=data.get("name", "Unknown"),
                 creator=data.get("creator", "unknown"),
                 price_sol=price_sol,
-                market_cap_usd=market_cap_usd,
+                market_cap_usd=fdv_usd,
                 complete=data.get("complete", False),
             )
         except Exception as e:
