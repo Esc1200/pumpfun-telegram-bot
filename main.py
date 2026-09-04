@@ -1904,6 +1904,7 @@ class PumpFunBot:
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+        return
 
 
 # ═══════════════════════════════════════════════════════════════
