@@ -3578,3 +3578,9 @@ connector: <aiohttp.connector.TCPConnector object at 0x733af8ba5a50>
 2026-09-04 22:06:08,390 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/deleteWebhook "HTTP/1.1 200 OK"
 2026-09-04 22:06:08,396 - telegram.ext.Application - INFO - Application started
 2026-09-04 22:06:19,003 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 22:06:35,879 - __main__ - INFO - Bot started!
+2026-09-04 22:06:36,541 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getMe "HTTP/1.1 200 OK"
+2026-09-04 22:06:36,665 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/setMyCommands "HTTP/1.1 200 OK"
+2026-09-04 22:06:36,667 - __main__ - INFO - Bot command menu set
+2026-09-04 22:06:36,776 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/deleteWebhook "HTTP/1.1 200 OK"
+2026-09-04 22:06:36,780 - telegram.ext.Application - INFO - Application started
