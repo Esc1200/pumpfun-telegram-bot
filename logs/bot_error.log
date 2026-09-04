@@ -3393,3 +3393,61 @@ NameError: name 'query' is not defined
 2026-09-04 21:54:21,816 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
 2026-09-04 21:54:31,934 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
 2026-09-04 21:54:42,053 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:54:47,477 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:54:47,479 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2026-09-04 21:54:47,480 - telegram.ext.Application - INFO - Application.stop() complete
+2026-09-04 21:54:47,548 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x70b68c7b6650>
+2026-09-04 21:54:47,548 - asyncio - ERROR - Unclosed connector
+connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x70b68c7e0bb0>, 3616611.130246667)]']
+connector: <aiohttp.connector.TCPConnector object at 0x70b68c7a6ed0>
+2026-09-04 21:54:47,549 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-44' coro=<PumpFunBot.fdv_alert_tracker() running at /home/administrator/pumpfun-telegram-bot/main.py:1542> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+2026-09-04 21:54:48,470 - __main__ - INFO - Bot started!
+2026-09-04 21:54:49,195 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getMe "HTTP/1.1 200 OK"
+2026-09-04 21:54:49,342 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/setMyCommands "HTTP/1.1 200 OK"
+2026-09-04 21:54:49,343 - __main__ - INFO - Bot command menu set
+2026-09-04 21:54:49,462 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/deleteWebhook "HTTP/1.1 200 OK"
+2026-09-04 21:54:49,466 - telegram.ext.Application - INFO - Application started
+2026-09-04 21:55:00,063 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:55:10,184 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:55:20,300 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:55:30,422 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:55:40,540 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:55:50,660 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:56:00,788 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:56:10,906 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:56:21,021 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:56:31,142 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:56:41,256 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:56:51,374 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:57:01,493 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:57:11,615 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:57:21,734 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:57:31,855 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:57:41,974 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:57:52,098 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:58:02,216 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:58:08,134 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:58:09,508 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/sendMessage "HTTP/1.1 200 OK"
+2026-09-04 21:58:12,833 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:58:12,965 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/answerCallbackQuery "HTTP/1.1 200 OK"
+2026-09-04 21:58:13,141 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/editMessageText "HTTP/1.1 200 OK"
+2026-09-04 21:58:19,067 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:58:19,070 - telegram.ext.Application - ERROR - No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/venv/lib/python3.11/site-packages/telegram/ext/_application.py", line 1264, in process_update
+    await coroutine
+  File "/home/administrator/pumpfun-telegram-bot/venv/lib/python3.11/site-packages/telegram/ext/_handlers/basehandler.py", line 157, in handle_update
+    return await self.callback(update, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1039, in specify_amount_handler
+    await query.edit_message_text(
+          ^^^^^
+NameError: name 'query' is not defined
+2026-09-04 21:58:19,074 - __main__ - INFO - Starting FDV alert tracker for user 6732920679
+2026-09-04 21:58:29,194 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:58:39,314 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:58:49,437 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:58:59,561 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:59:09,677 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"

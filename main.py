@@ -1036,11 +1036,10 @@ class PumpFunBot:
             except:
                 pass
         
-        await query.edit_message_text(
+        await update.message.reply_html(
             f"✅ <b>FDV Alert Set!</b>\n\n"
             f"Target: <b>${value:,.0f}</b>\n\n"
-            f"I'll notify you when the FDV crosses ${value:,.0f}.",
-            parse_mode="HTML"
+            f"I'll notify you when the FDV crosses ${value:,.0f}."
         )
         return
         
