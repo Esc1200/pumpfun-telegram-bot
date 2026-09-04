@@ -1610,6 +1610,29 @@ class PumpFunBot:
             ],
         ]
         
+        # Show FDV alerts for this token
+        trackers = load_json(TRACKERS_FILE)
+        user_tracks = trackers.get(str(user_id), {})
+        token_alerts = {}
+        for k, v in user_tracks.items():
+            if k.startswith("fdv_alert_") and v.get("mint") == mint and v.get("active", True):
+                target = v.get("target_fdv", 0)
+                if target > 0:
+                    token_alerts[target] = k
+        
+        if token_alerts:
+            alert_buttons = []
+            for target in sorted(token_alerts.keys()):
+                alert_buttons.append(
+                    InlineKeyboardButton(
+                        f"🔔 ${target:,.0f}",
+                        callback_data=f"fdv_alert_{mint}_{int(target)}"
+                    )
+                )
+            keyboard.append(alert_buttons)
+        
+        # Also add set alert button
+        
         text = (
             f"🪙 <b>{info.symbol}</b> ({info.name})\n\n"
             f"💰 Your SOL: <b>{sol_balance:.4f}</b>\n"
