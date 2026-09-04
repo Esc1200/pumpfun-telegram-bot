@@ -91,7 +91,8 @@ class PumpFunBot:
         self.app.add_handler(CommandHandler("track", self.cmd_track_wallet))
         self.app.add_handler(CommandHandler("untrack", self.cmd_untrack_wallet))
         self.app.add_handler(CommandHandler("tracks", self.cmd_list_tracks))
-        self.app.add_handler(CommandHandler("setpct", self.cmd_set_percentage))
+        self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+        self.app.add_handler(CallbackQueryHandler(self.setbuy_callback, pattern="^setbuy_"))
         
         # Buy/Sell/Track button callbacks
         self.app.add_handler(CallbackQueryHandler(self.buy_button_callback, pattern="^buy_"))
@@ -103,6 +104,12 @@ class PumpFunBot:
         self.app.add_handler(MessageHandler(
             filters.TEXT & ~filters.COMMAND & filters.Regex(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$'),
             self.paste_contract_handler
+        ))
+        
+        # Custom specify amount handler
+        self.app.add_handler(MessageHandler(
+            filters.TEXT & ~filters.COMMAND & filters.Regex(r'^\d*\.?\d+$'),
+            self.specify_amount_handler
         ))
 
     async def _set_commands(self, application: Application):
@@ -117,7 +124,7 @@ class PumpFunBot:
             BotCommand("track", "👁️ Track a creator wallet"),
             BotCommand("untrack", "🚫 Stop tracking a wallet"),
             BotCommand("tracks", "📋 List tracked wallets"),
-            BotCommand("setpct", "📊 Set default buy %"),
+            BotCommand("setbuy", "📊 Set default buy amount"),
             BotCommand("help", "❓ Show help"),
         ]
         await application.bot.set_my_commands(commands)
@@ -617,42 +624,135 @@ class PumpFunBot:
         
         await update.message.reply_html(text)
 
-    async def cmd_set_percentage(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Set default buy percentage for tracked wallet auto-buys."""
-        if not context.args:
-            await update.message.reply_html(
-                "📊 <b>Set Buy Percentage</b>\n\n"
-                "Usage: <code>/setpct &lt;percentage&gt;</code>\n"
-                "Example: <code>/setpct 10</code> for 10%\n\n"
-                "This percentage is used when auto-buying from tracked wallets."
-            )
-            return
-        
-        try:
-            pct = float(context.args[0].strip().replace("%", ""))
-            if pct <= 0 or pct > 100:
-                raise ValueError
-        except:
-            await update.message.reply_text("❌ Invalid percentage.")
-            return
-        
-        user_id = update.effective_user.id
-        trackers = load_json(TRACKERS_FILE)
-        
-        if str(user_id) not in trackers:
-            trackers[str(user_id)] = {}
-        
-        trackers[str(user_id)]["_default_pct"] = pct
-        save_json(TRACKERS_FILE, trackers)
+    async def cmd_set_buy(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show buttons for setting default buy amount (SOL or percentage)."""
+        keyboard = [
+            # SOL buy row
+            [
+                InlineKeyboardButton("0.1 SOL", callback_data="setbuy_sol_0.1"),
+                InlineKeyboardButton("0.2 SOL", callback_data="setbuy_sol_0.2"),
+                InlineKeyboardButton("0.5 SOL", callback_data="setbuy_sol_0.5"),
+                InlineKeyboardButton("1 SOL", callback_data="setbuy_sol_1"),
+            ],
+            # Percentage buy row
+            [
+                InlineKeyboardButton("20%", callback_data="setbuy_pct_20"),
+                InlineKeyboardButton("50%", callback_data="setbuy_pct_50"),
+            ],
+            # Specify row
+            [
+                InlineKeyboardButton("✏️ Specify SOL", callback_data="setbuy_specify_sol"),
+                InlineKeyboardButton("✏️ Specify %", callback_data="setbuy_specify_pct"),
+            ],
+        ]
         
         await update.message.reply_html(
-            f"✅ <b>Default buy percentage set to {pct}%</b>\n\n"
-            f"When a tracked wallet launches a token, I'll spend {pct}% of your balance."
+            "📊 <b>Set Default Buy Amount</b>\n\n"
+            "Choose how much to spend when auto-buying or copy-buying:\n\n"
+            "<b>Fixed SOL:</b> Always spend this exact amount\n"
+            "<b>Percentage:</b> Spend this % of your balance",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
+
+    async def setbuy_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle setbuy button callbacks."""
+        query = update.callback_query
+        await query.answer()
+        
+        data = query.data.replace("setbuy_", "")
+        user_id = update.effective_user.id
+        
+        if data.startswith("sol_"):
+            amount = float(data.replace("sol_", ""))
+            trackers = load_json(TRACKERS_FILE)
+            if str(user_id) not in trackers:
+                trackers[str(user_id)] = {}
+            trackers[str(user_id)]["_default_sol"] = amount
+            trackers[str(user_id)]["_default_pct"] = None  # Clear pct if SOL is set
+            save_json(TRACKERS_FILE, trackers)
+            
+            await query.edit_message_text(
+                f"✅ <b>Default buy set to {amount} SOL</b>\n\n"
+                f"Auto-buys and copy-buys will spend exactly {amount} SOL.",
+                parse_mode="HTML"
+            )
+        
+        elif data.startswith("pct_"):
+            pct = float(data.replace("pct_", ""))
+            trackers = load_json(TRACKERS_FILE)
+            if str(user_id) not in trackers:
+                trackers[str(user_id)] = {}
+            trackers[str(user_id)]["_default_pct"] = pct
+            trackers[str(user_id)]["_default_sol"] = None  # Clear SOL if pct is set
+            save_json(TRACKERS_FILE, trackers)
+            
+            await query.edit_message_text(
+                f"✅ <b>Default buy set to {pct}%</b>\n\n"
+                f"Auto-buys and copy-buys will spend {pct}% of your balance.",
+                parse_mode="HTML"
+            )
+        
+        elif data == "specify_sol":
+            context.user_data["awaiting_specify"] = "sol"
+            await query.edit_message_text(
+                "✏️ <b>Specify SOL Amount</b>\n\n"
+                "Send a custom SOL amount (e.g. <code>0.3</code>)\n"
+                "Minimum: 0.001 SOL",
+                parse_mode="HTML"
+            )
+        
+        elif data == "specify_pct":
+            context.user_data["awaiting_specify"] = "pct"
+            await query.edit_message_text(
+                "✏️ <b>Specify Percentage</b>\n\n"
+                "Send a custom percentage (e.g. <code>30</code>)\n"
+                "Range: 1-100%",
+                parse_mode="HTML"
+            )
 
     # ═══════════════════════════════════════════════════════════════
     # Wallet Tracker Loop
     # ═══════════════════════════════════════════════════════════════
+
+    async def specify_amount_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle custom SOL/percentage amount input."""
+        if "awaiting_specify" not in context.user_data:
+            return  # Not expecting input
+        
+        mode = context.user_data.pop("awaiting_specify")
+        text = update.message.text.strip()
+        user_id = update.effective_user.id
+        
+        try:
+            value = float(text)
+        except:
+            await update.message.reply_text("❌ Invalid number.")
+            return
+        
+        trackers = load_json(TRACKERS_FILE)
+        if str(user_id) not in trackers:
+            trackers[str(user_id)] = {}
+        
+        if mode == "sol":
+            if value < 0.001:
+                await update.message.reply_text("❌ Minimum is 0.001 SOL.")
+                return
+            trackers[str(user_id)]["_default_sol"] = value
+            trackers[str(user_id)]["_default_pct"] = None
+            save_json(TRACKERS_FILE, trackers)
+            await update.message.reply_html(
+                f"✅ <b>Default buy set to {value} SOL</b>"
+            )
+        elif mode == "pct":
+            if value <= 0 or value > 100:
+                await update.message.reply_text("❌ Range is 1-100%.")
+                return
+            trackers[str(user_id)]["_default_pct"] = value
+            trackers[str(user_id)]["_default_sol"] = None
+            save_json(TRACKERS_FILE, trackers)
+            await update.message.reply_html(
+                f"✅ <b>Default buy set to {value}%</b>"
+            )
 
     async def wallet_tracker(self, user_id: int):
         """Background task that monitors tracked wallets for new token launches."""
@@ -665,8 +765,9 @@ class PumpFunBot:
                 trackers = load_json(TRACKERS_FILE)
                 user_tracks = trackers.get(str(user_id), {})
                 
-                # Get default buy percentage
-                default_pct = user_tracks.get("_default_pct", 10)
+                # Get default buy settings
+                default_pct = user_tracks.get("_default_pct")
+                default_sol = user_tracks.get("_default_sol", 0.01)
                 
                 # Get active creator-tracked wallets
                 active_wallets = [
@@ -700,11 +801,21 @@ class PumpFunBot:
                         # Auto-buy!
                         try:
                             balance = await client.get_balance()
-                            amount_sol = balance * (default_pct / 100)
+                            
+                            # Use fixed SOL amount if set, otherwise use percentage
+                            if default_sol:
+                                amount_sol = default_sol
+                            elif default_pct:
+                                amount_sol = balance * (default_pct / 100)
+                            else:
+                                amount_sol = balance * 0.1  # Default 10%
                             
                             if amount_sol < 0.001:
                                 logger.info(f"Balance too low for auto-buy: {balance}")
                                 continue
+                            
+                            if amount_sol > balance * 0.95:
+                                amount_sol = balance * 0.95  # Keep some SOL for fees
                             
                             logger.info(
                                 f"Auto-buying {token_data.get('symbol')} from tracked wallet {creator[:8]}"
@@ -773,8 +884,9 @@ class PumpFunBot:
                 trackers = load_json(TRACKERS_FILE)
                 user_tracks = trackers.get(str(user_id), {})
                 
-                # Get default buy percentage
-                default_pct = user_tracks.get("_default_pct", 10)
+                # Get default buy settings
+                default_pct = user_tracks.get("_default_pct")
+                default_sol = user_tracks.get("_default_sol", 0.01)
                 
                 # Get active trader-tracked wallets
                 trader_wallets = [
@@ -843,11 +955,21 @@ class PumpFunBot:
                                     continue  # Skip graduated tokens
                                 
                                 balance = await client.get_balance()
-                                amount_sol = balance * (default_pct / 100)
+                                
+                                # Use fixed SOL amount if set, otherwise use percentage
+                                if default_sol:
+                                    amount_sol = default_sol
+                                elif default_pct:
+                                    amount_sol = balance * (default_pct / 100)
+                                else:
+                                    amount_sol = balance * 0.1  # Default 10%
                                 
                                 if amount_sol < 0.001:
                                     logger.info(f"Balance too low for copy-buy: {balance}")
                                     continue
+                                
+                                if amount_sol > balance * 0.95:
+                                    amount_sol = balance * 0.95  # Keep some SOL for fees
                                 
                                 logger.info(
                                     f"Copy-buying {mint[:8]}... from trader {wallet[:8]}"
