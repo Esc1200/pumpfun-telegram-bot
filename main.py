@@ -1800,6 +1800,7 @@ class PumpFunBot:
                 text,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
+
     async def _show_wallet_options(self, update, wallet):
         """Show tracking options for a wallet address."""
         keyboard = [
