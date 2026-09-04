@@ -1664,7 +1664,7 @@ class PumpFunBot:
             self._last_grid_message[user_id] = msg.message_id
 
     async def _edit_back_to_grid(self, query, client, mint):
-        """Edit message back to the original token grid."""
+        """Edit message back to the original token grid with existing alert buttons."""
         try:
             info = await client.get_token_info(mint)
             if not info:
@@ -1690,10 +1690,26 @@ class PumpFunBot:
                     InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"),
                     InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100"),
                 ],
-                [
-                    InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}"),
-                ],
             ]
+            
+            # Load existing alerts for this token
+            trackers = load_json(TRACKERS_FILE)
+            user_tracks = trackers.get(str(query.from_user.id), {})
+            alert_buttons = []
+            for k, v in user_tracks.items():
+                if k.startswith("fdv_alert_") and v.get("mint") == mint and v.get("active", True):
+                    target = v.get("target_fdv", 0)
+                    if target > 0:
+                        alert_buttons.append(
+                            InlineKeyboardButton(
+                                f"🔔 ${target:,.0f}",
+                                callback_data=f"fdv_alert_{mint}_{int(target)}"
+                            )
+                        )
+            if alert_buttons:
+                keyboard.append(alert_buttons)
+            
+            keyboard.append([InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}")])
             
             text = (
                 f"🪙 <b>{info.symbol}</b> ({info.name})\n\n"
@@ -1711,6 +1727,76 @@ class PumpFunBot:
             )
         except Exception as e:
             logger.error(f"Error editing back to grid: {e}")
+
+    async def _show_token_grid_with_alerts(self, update, client, info, mint):
+        """Show buy/sell grid for a token with existing FDV alert buttons."""
+        sol_balance = await client.get_balance()
+        token_balance = await client.get_token_balance(mint)
+        
+        # 2x5 grid: Buy, Sell, and FDV Alert
+        keyboard = [
+            [
+                InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"),
+                InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25"),
+            ],
+            [
+                InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50"),
+                InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50"),
+            ],
+            [
+                InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75"),
+                InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75"),
+            ],
+            [
+                InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"),
+                InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100"),
+            ],
+            [
+                InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}"),
+            ],
+        ]
+        
+        # Show FDV alerts for this token
+        trackers = load_json(TRACKERS_FILE)
+        user_tracks = trackers.get(str(update.effective_user.id), {})
+        token_alerts = {}
+        for k, v in user_tracks.items():
+            if k.startswith("fdv_alert_") and v.get("mint") == mint and v.get("active", True):
+                target = v.get("target_fdv", 0)
+                if target > 0:
+                    token_alerts[target] = k
+        
+        if token_alerts:
+            alert_buttons = []
+            for target in sorted(token_alerts.keys()):
+                alert_buttons.append(
+                    InlineKeyboardButton(
+                        f"🔔 ${target:,.0f}",
+                        callback_data=f"fdv_alert_{mint}_{int(target)}"
+                    )
+                )
+            keyboard.append(alert_buttons)
+        
+        text = (
+            f"🪙 <b>{info.symbol}</b> ({info.name})\n\n"
+            f"💰 Your SOL: <b>{sol_balance:.4f}</b>\n"
+            f"🪙 Your tokens: <b>{token_balance:.0f}</b>\n"
+            f"💲 Price: {info.price_sol:.8f} SOL (${info.price_usd:.6f})\n"
+            f"📊 FDV: ${info.market_cap_usd:,.0f}\n\n"
+            f"Select action:"
+        )
+        
+        if update.callback_query:
+            await update.callback_query.edit_message_text(
+                text,
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        else:
+            await update.message.reply_html(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
 
     async def _show_wallet_options(self, update, wallet):
         """Show tracking options for a wallet address."""
