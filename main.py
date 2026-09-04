@@ -1110,7 +1110,7 @@ class PumpFunBot:
                         [InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}")],
                     ]
                     text = f"🪙 <b>{info.symbol}</b> ({info.name})\n\n✅ <b>Sold {sell_amount:.0f} tokens</b>\n\nTX: <code>{tx}</code>\n\nSelect action:"
-                    await update.message.reply_html(text, reply_markup=InlineKeyboardMarkup(keyboard))
+                    await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
                     return
             except Exception as e:
                 await update.message.reply_text(f"❌ Sell failed: {e}")
