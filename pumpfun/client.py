@@ -100,6 +100,26 @@ class PumpFunClient:
         self._session: Optional[aiohttp.ClientSession] = None
         self._blockhash_cache: Optional[Tuple[str, float]] = None
         self._blockhash_ttl = 30  # seconds
+        self._sol_price_cache: Optional[Tuple[float, float]] = None
+        self._sol_price_ttl = 60  # seconds
+
+    async def _get_sol_price(self) -> float:
+        """Fetch real-time SOL price from CoinGecko with caching."""
+        if self._sol_price_cache:
+            price, cached_at = self._sol_price_cache
+            if time.time() - cached_at < self._sol_price_ttl:
+                return price
+        
+        try:
+            session = await self._get_session()
+            url = "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+            async with session.get(url) as resp:
+                data = await resp.json()
+            price = float(data["solana"]["usd"])
+            self._sol_price_cache = (price, time.time())
+            return price
+        except Exception:
+            return 150.0  # Fallback
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -375,9 +395,10 @@ class PumpFunClient:
             price_sol = virtual_sol / virtual_token if virtual_token > 0 else 0
 
             # FDV = price per token × total supply
-            sol_price_usd = 150  # approximate SOL price
+            # Every pumpfun token launches with 1B total supply at mint
+            sol_price_usd = await self._get_sol_price()
             price_usd = price_sol * sol_price_usd
-            total_supply = float(data.get("total_supply", 1_000_000_000))
+            total_supply = 1_000_000_000  # Fixed 1B at mint
             fdv_usd = price_usd * total_supply
 
             return TokenInfo(
