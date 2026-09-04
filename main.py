@@ -878,6 +878,7 @@ class PumpFunBot:
             f"I'll notify you when the FDV crosses ${target_fdv:,.0f}.",
             parse_mode="HTML"
         )
+        return
 
     async def fdv_custom_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle custom FDV amount input."""
