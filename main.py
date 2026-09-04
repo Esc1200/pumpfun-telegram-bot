@@ -407,6 +407,7 @@ class PumpFunBot:
                 f"Use /positions to track your holdings.",
                 parse_mode="HTML"
             )
+            return
         except Exception as e:
             await query.edit_message_text(f"❌ Buy failed: {e}")
         
@@ -818,6 +819,7 @@ class PumpFunBot:
                 f"Auto-buys and copy-buys will spend {pct}% of your balance.",
                 parse_mode="HTML"
             )
+            return
         
         elif data == "specify_sol":
             context.user_data["awaiting_specify"] = "sol"
