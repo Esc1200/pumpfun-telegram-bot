@@ -635,7 +635,9 @@ class PumpFunBot:
         
         text = "👁️ <b>Tracked Wallets</b>\n\n"
         for wallet, info in user_tracks.items():
-            status = "🟢" if info.get("active") else "🔴"
+            if wallet.startswith("_"):
+                continue  # skip internal keys like _default_pct
+            status = "🟢" if isinstance(info, dict) and info.get("active") else "🔴"
             text += f"{status} <code>{wallet[:20]}...</code>\n"
         
         await update.message.reply_html(text)
