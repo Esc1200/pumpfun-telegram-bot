@@ -1632,3 +1632,85 @@ task: <Task pending name='Task-73' coro=<PumpFunBot.fdv_alert_tracker() running 
 2026-09-04 18:37:38,611 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
 2026-09-04 18:37:48,730 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
 2026-09-04 18:37:58,864 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 18:38:08,987 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 18:38:14,904 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 18:38:14,906 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2026-09-04 18:38:14,906 - telegram.ext.Application - INFO - Application.stop() complete
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1744, in <module>
+    main()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1739, in main
+    bot.initialize()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 94, in initialize
+    self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+                                                  ^^^^^^^^^^^^^^^^
+AttributeError: 'PumpFunBot' object has no attribute 'cmd_set_buy'
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1744, in <module>
+    main()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1739, in main
+    bot.initialize()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 94, in initialize
+    self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+                                                  ^^^^^^^^^^^^^^^^
+AttributeError: 'PumpFunBot' object has no attribute 'cmd_set_buy'
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1744, in <module>
+    main()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1739, in main
+    bot.initialize()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 94, in initialize
+    self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+                                                  ^^^^^^^^^^^^^^^^
+AttributeError: 'PumpFunBot' object has no attribute 'cmd_set_buy'
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1744, in <module>
+    main()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1739, in main
+    bot.initialize()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 94, in initialize
+    self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+                                                  ^^^^^^^^^^^^^^^^
+AttributeError: 'PumpFunBot' object has no attribute 'cmd_set_buy'
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1744, in <module>
+    main()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1739, in main
+    bot.initialize()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 94, in initialize
+    self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+                                                  ^^^^^^^^^^^^^^^^
+AttributeError: 'PumpFunBot' object has no attribute 'cmd_set_buy'
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1744, in <module>
+    main()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1739, in main
+    bot.initialize()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 94, in initialize
+    self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+                                                  ^^^^^^^^^^^^^^^^
+AttributeError: 'PumpFunBot' object has no attribute 'cmd_set_buy'
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1744, in <module>
+    main()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1739, in main
+    bot.initialize()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 94, in initialize
+    self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+                                                  ^^^^^^^^^^^^^^^^
+AttributeError: 'PumpFunBot' object has no attribute 'cmd_set_buy'
+Traceback (most recent call last):
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1744, in <module>
+    main()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 1739, in main
+    bot.initialize()
+  File "/home/administrator/pumpfun-telegram-bot/main.py", line 94, in initialize
+    self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+                                                  ^^^^^^^^^^^^^^^^
+AttributeError: 'PumpFunBot' object has no attribute 'cmd_set_buy'
+2026-09-04 18:39:03,999 - __main__ - INFO - Bot started!
+2026-09-04 18:39:04,763 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getMe "HTTP/1.1 200 OK"
+2026-09-04 18:39:05,012 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/setMyCommands "HTTP/1.1 200 OK"
+2026-09-04 18:39:05,014 - __main__ - INFO - Bot command menu set
+2026-09-04 18:39:05,137 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/deleteWebhook "HTTP/1.1 200 OK"
+2026-09-04 18:39:05,143 - telegram.ext.Application - INFO - Application started

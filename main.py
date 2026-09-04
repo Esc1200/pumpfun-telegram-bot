@@ -718,6 +718,10 @@ class PumpFunBot:
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
+    async def cmd_set_buy(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Redirect to setbuy_callback for button display."""
+        await self.setbuy_callback(update, context)
+
     async def alerts_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle alert toggle and delete buttons."""
         query = update.callback_query
