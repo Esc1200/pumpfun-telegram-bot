@@ -627,23 +627,14 @@ class PumpFunBot:
     async def cmd_set_buy(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show buttons for setting default buy amount (SOL or percentage)."""
         keyboard = [
-            # SOL buy row
-            [
-                InlineKeyboardButton("0.1 SOL", callback_data="setbuy_sol_0.1"),
-                InlineKeyboardButton("0.2 SOL", callback_data="setbuy_sol_0.2"),
-                InlineKeyboardButton("0.5 SOL", callback_data="setbuy_sol_0.5"),
-                InlineKeyboardButton("1 SOL", callback_data="setbuy_sol_1"),
-            ],
-            # Percentage buy row
-            [
-                InlineKeyboardButton("20%", callback_data="setbuy_pct_20"),
-                InlineKeyboardButton("50%", callback_data="setbuy_pct_50"),
-            ],
-            # Specify row
-            [
-                InlineKeyboardButton("✏️ Specify SOL", callback_data="setbuy_specify_sol"),
-                InlineKeyboardButton("✏️ Specify %", callback_data="setbuy_specify_pct"),
-            ],
+            [InlineKeyboardButton("0.1 SOL", callback_data="setbuy_sol_0.1")],
+            [InlineKeyboardButton("0.2 SOL", callback_data="setbuy_sol_0.2")],
+            [InlineKeyboardButton("0.5 SOL", callback_data="setbuy_sol_0.5")],
+            [InlineKeyboardButton("1 SOL", callback_data="setbuy_sol_1")],
+            [InlineKeyboardButton("20%", callback_data="setbuy_pct_20")],
+            [InlineKeyboardButton("50%", callback_data="setbuy_pct_50")],
+            [InlineKeyboardButton("✏️ Specify SOL", callback_data="setbuy_specify_sol")],
+            [InlineKeyboardButton("✏️ Specify %", callback_data="setbuy_specify_pct")],
         ]
         
         await update.message.reply_html(
@@ -1062,18 +1053,14 @@ class PumpFunBot:
         token_balance = await client.get_token_balance(mint)
         
         keyboard = [
-            [
-                InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"),
-                InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50"),
-                InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75"),
-                InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"),
-            ],
-            [
-                InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25"),
-                InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50"),
-                InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75"),
-                InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100"),
-            ],
+            [InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25")],
+            [InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50")],
+            [InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75")],
+            [InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100")],
+            [InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25")],
+            [InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50")],
+            [InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75")],
+            [InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100")],
         ]
         
         await update.message.reply_html(
@@ -1089,10 +1076,8 @@ class PumpFunBot:
     async def _show_wallet_options(self, update, wallet):
         """Show tracking options for a wallet address."""
         keyboard = [
-            [
-                InlineKeyboardButton("👁️ Creator Track", callback_data=f"track_creator_{wallet}"),
-                InlineKeyboardButton("📋 Trader Track", callback_data=f"track_trader_{wallet}"),
-            ],
+            [InlineKeyboardButton("👁️ Creator Track", callback_data=f"track_creator_{wallet}")],
+            [InlineKeyboardButton("📋 Trader Track", callback_data=f"track_trader_{wallet}")],
         ]
         
         await update.message.reply_html(
