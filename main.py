@@ -755,10 +755,10 @@ class PumpFunBot:
             trackers = load_json(TRACKERS_FILE)
             user_tracks = trackers.get(str(user_id), {})
 
-            # Find the matching alert by comparing last 8 chars of mint
+            # Find the matching alert by comparing last 8 chars of mint AND target_fdv
             alert_key = None
             for k in user_tracks:
-                if k.startswith("fdv_alert_") and k.endswith(mint_short):
+                if k.startswith("fdv_alert_") and k.endswith(mint_short) and k.endswith(f"_{target_fdv}"):
                     alert_key = k
                     break
 
@@ -849,10 +849,11 @@ class PumpFunBot:
         if str(user_id) not in trackers:
             trackers[str(user_id)] = {}
         
-        trackers[str(user_id)][f"fdv_alert_{mint}"] = {
+        trackers[str(user_id)][f"fdv_alert_{mint}_{int(target_fdv)}"] = {
             "mint": mint,
             "target_fdv": target_fdv,
             "created_at": datetime.utcnow().isoformat(),
+            "active": True,
         }
         save_json(TRACKERS_FILE, trackers)
         
@@ -973,7 +974,7 @@ class PumpFunBot:
             if str(user_id) not in trackers:
                 trackers[str(user_id)] = {}
             
-            trackers[str(user_id)][f"fdv_alert_{mint}"] = {
+            trackers[str(user_id)][f"fdv_alert_{mint}_{int(value)}"] = {
                 "mint": mint,
                 "target_fdv": value,
                 "created_at": datetime.utcnow().isoformat(),
