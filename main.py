@@ -1044,13 +1044,23 @@ class PumpFunBot:
                 return
             
             try:
-                await update.message.reply_text(f"⏳ Buying with {amount_sol:.4f} SOL...")
                 tx = await client.buy_token(mint, amount_sol)
-                await update.message.reply_html(
-                    f"✅ <b>Buy Successful!</b>\n\n"
-                    f"Spent: {amount_sol:.4f} SOL\n"
-                    f"TX: <code>{tx}</code>"
-                )
+                
+                # Edit back to grid
+                info = await client.get_token_info(mint)
+                if info:
+                    sol_balance = await client.get_balance()
+                    token_balance = await client.get_token_balance(mint)
+                    keyboard = [
+                        [InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"), InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25")],
+                        [InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50"), InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50")],
+                        [InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75"), InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75")],
+                        [InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"), InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100")],
+                        [InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}")],
+                    ]
+                    text = f"🪙 <b>{info.symbol}</b> ({info.name})\n\n✅ <b>Buy Successful!</b>\n\nSpent: {amount_sol:.4f} SOL\nTX: <code>{tx}</code>\n\nSelect action:"
+                    await update.message.reply_html(text, reply_markup=InlineKeyboardMarkup(keyboard))
+                    return
             except Exception as e:
                 await update.message.reply_text(f"❌ Buy failed: {e}")
             return
