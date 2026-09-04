@@ -5,7 +5,7 @@ Entry point for the Telegram pump.fun trading bot.
 import logging
 import asyncio
 from typing import Optional
-from telegram import Update, BotCommand
+from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ConversationHandler, ContextTypes
 from dotenv import load_dotenv
 import os
