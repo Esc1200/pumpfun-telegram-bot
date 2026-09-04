@@ -87,6 +87,7 @@ class TokenInfo:
     name: str
     creator: str
     price_sol: float  # per token
+    price_usd: float  # per token in USD
     market_cap_usd: float
     complete: bool
 
@@ -403,8 +404,9 @@ class PumpFunClient:
                 name=pair.get("baseToken", {}).get("name", "Unknown"),
                 creator=pair.get("owner", "unknown"),
                 price_sol=price_sol,
+                price_usd=price_usd,
                 market_cap_usd=fdv_usd if fdv_usd > 0 else market_cap,
-                complete=False,  # DexScreener doesn't have this field directly
+                complete=False,
             )
         except Exception as e:
             logger.warning(f"Failed to fetch token info for {mint}: {e}")

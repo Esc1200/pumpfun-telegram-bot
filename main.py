@@ -1052,22 +1052,31 @@ class PumpFunBot:
         sol_balance = await client.get_balance()
         token_balance = await client.get_token_balance(mint)
         
+        # 2x4 grid: Buy and Sell side by side
         keyboard = [
-            [InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25")],
-            [InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50")],
-            [InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75")],
-            [InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100")],
-            [InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25")],
-            [InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50")],
-            [InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75")],
-            [InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100")],
+            [
+                InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"),
+                InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25"),
+            ],
+            [
+                InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50"),
+                InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50"),
+            ],
+            [
+                InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75"),
+                InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75"),
+            ],
+            [
+                InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"),
+                InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100"),
+            ],
         ]
         
         await update.message.reply_html(
             f"🪙 <b>{info.symbol}</b> ({info.name})\n\n"
             f"💰 Your SOL: <b>{sol_balance:.4f}</b>\n"
             f"🪙 Your tokens: <b>{token_balance:.0f}</b>\n"
-            f"💲 Price: {info.price_sol:.8f} SOL\n"
+            f"💲 Price: {info.price_sol:.8f} SOL (${info.price_usd:.6f})\n"
             f"📊 FDV: ${info.market_cap_usd:,.0f}\n\n"
             f"Select action:",
             reply_markup=InlineKeyboardMarkup(keyboard)
