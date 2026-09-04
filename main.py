@@ -3,7 +3,8 @@ Entry point for the Telegram pump.fun trading bot.
 """
 
 import logging
-from telegram import Update
+from typing import Optional
+from telegram import Update, BotCommand
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ConversationHandler, ContextTypes
 from dotenv import load_dotenv
 import os
@@ -73,7 +74,12 @@ class PumpFunBot:
 
     def initialize(self):
         """Initialize the bot application."""
-        self.app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+        self.app = (
+            Application.builder()
+            .token(TELEGRAM_BOT_TOKEN)
+            .post_init(self._set_commands)
+            .build()
+        )
         
         # Register handlers
         self.app.add_handler(CommandHandler("start", self.cmd_start))
@@ -122,6 +128,24 @@ class PumpFunBot:
         
         # Callback handler for sell buttons
         self.app.add_handler(CallbackQueryHandler(self.sell_button_callback, pattern="^sell_"))
+
+    async def _set_commands(self, application: Application):
+        """Set the bot command menu in Telegram UI."""
+        commands = [
+            BotCommand("start", "🚀 Start bot & show help"),
+            BotCommand("balance", "💰 Check wallet balance"),
+            BotCommand("import", "📥 Import wallet (private key)"),
+            BotCommand("buy", "🪙 Buy a token (interactive)"),
+            BotCommand("sell", "💸 Sell a token (interactive)"),
+            BotCommand("positions", "📊 View open positions"),
+            BotCommand("track", "👁️ Track a creator wallet"),
+            BotCommand("untrack", "🚫 Stop tracking a wallet"),
+            BotCommand("tracks", "📋 List tracked wallets"),
+            BotCommand("setpct", "📊 Set default buy %"),
+            BotCommand("help", "❓ Show help"),
+        ]
+        await application.bot.set_my_commands(commands)
+        logger.info("Bot command menu set")
 
     def get_client(self, user_id: int) -> Optional[PumpFunClient]:
         """Get or create a PumpFunClient for a user."""
