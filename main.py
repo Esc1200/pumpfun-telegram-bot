@@ -92,6 +92,7 @@ class PumpFunBot:
         self.app.add_handler(CommandHandler("untrack", self.cmd_untrack_wallet))
         self.app.add_handler(CommandHandler("tracks", self.cmd_list_tracks))
         self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
+        self.app.add_handler(CommandHandler("alerts", self.cmd_alerts))
         self.app.add_handler(CallbackQueryHandler(self.setbuy_callback, pattern="^setbuy_"))
         
         # Buy/Sell/Track/Alert button callbacks
@@ -105,6 +106,7 @@ class PumpFunBot:
         self.app.add_handler(CallbackQueryHandler(self.fdv_buy_callback, pattern="^fdv_buy_"))
         self.app.add_handler(CallbackQueryHandler(self.fdv_sell_callback, pattern="^fdv_sell_"))
         self.app.add_handler(CallbackQueryHandler(self.fdv_sellcustom_callback, pattern="^fdv_sellcustom_"))
+        self.app.add_handler(CallbackQueryHandler(self.alerts_callback, pattern="^alerts_"))
         
         # Paste address → detect token/wallet → show buttons
         self.app.add_handler(MessageHandler(
@@ -131,6 +133,7 @@ class PumpFunBot:
             BotCommand("untrack", "🚫 Stop tracking a wallet"),
             BotCommand("tracks", "📋 List tracked wallets"),
             BotCommand("setbuy", "📊 Set default buy amount"),
+            BotCommand("alerts", "🔔 FDV Alerts"),
             BotCommand("help", "❓ Show help"),
         ]
         await application.bot.set_my_commands(commands)
@@ -630,7 +633,71 @@ class PumpFunBot:
         
         await update.message.reply_html(text)
 
-    async def cmd_set_buy(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def cmd_alerts(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show FDV alerts with enable/disable options."""
+        user_id = update.effective_user.id
+        trackers = load_json(TRACKERS_FILE)
+        user_tracks = trackers.get(str(user_id), {})
+        
+        # Get FDV alerts only
+        fdv_alerts = {
+            k: v for k, v in user_tracks.items()
+            if k.startswith("fdv_alert_")
+        }
+        
+        if not fdv_alerts:
+            await update.message.reply_text("📭 No FDV alerts set.")
+            return
+        
+        text = "🔔 <b>Your FDV Alerts</b>\n\n"
+        keyboard = []
+        
+        for alert_key, alert in fdv_alerts.items():
+            mint = alert.get("mint", "")
+            target_fdv = alert.get("target_fdv", 0)
+            active = alert.get("active", True)
+            
+            # Get token info for display
+            symbol = "???"
+            try:
+                client = self.get_client(user_id)
+                if client:
+                    info = await client.get_token_info(mint)
+                    if info:
+                        symbol = info.symbol
+            except:
+                pass
+            
+            status = "🟢" if active else "🔴"
+            direction = "Active" if active else "Disabled"
+            
+            text += (
+                f"{status} <b>{symbol}</b>\n"
+                f"   Target: ${target_fdv:,.0f}\n"
+                f"   Mint: <code>{mint[:16]}...</code>\n"
+                f"   Status: {direction}\n\n"
+            )
+            
+            # Toggle button
+            action = "Disable" if active else "Enable"
+            emoji = "🔴" if active else "🟢"
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"{emoji} {action} {symbol}",
+                    callback_data=f"alerts_toggle_{mint}_{target_fdv}"
+                )
+            ])
+        
+        keyboard.append([
+            InlineKeyboardButton("🗑️ Delete All", callback_data="alerts_delete_all")
+        ])
+        
+        await update.message.reply_html(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    async def setbuy_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show buttons for setting default buy amount (SOL or percentage)."""
         keyboard = [
             [InlineKeyboardButton("0.1 SOL", callback_data="setbuy_sol_0.1")],
@@ -650,6 +717,50 @@ class PumpFunBot:
             "<b>Percentage:</b> Spend this % of your balance",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+
+    async def alerts_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle alert toggle and delete buttons."""
+        query = update.callback_query
+        await query.answer()
+
+        data = query.data.replace("alerts_", "")
+        user_id = update.effective_user.id
+
+        if data == "delete_all":
+            trackers = load_json(TRACKERS_FILE)
+            user_tracks = trackers.get(str(user_id), {})
+
+            # Remove all FDV alerts
+            to_remove = [k for k in user_tracks if k.startswith("fdv_alert_")]
+            for k in to_remove:
+                del user_tracks[k]
+
+            trackers[str(user_id)] = user_tracks
+            save_json(TRACKERS_FILE, trackers)
+
+            await query.edit_message_text("✅ All FDV alerts deleted.")
+            return
+
+        # Toggle alert
+        if data.startswith("toggle_"):
+            parts = data.replace("toggle_", "").rsplit("_", 1)
+            mint = parts[0]
+            target_fdv = parts[1]
+
+            trackers = load_json(TRACKERS_FILE)
+            user_tracks = trackers.get(str(user_id), {})
+
+            alert_key = f"fdv_alert_{mint}"
+            if alert_key in user_tracks:
+                # Toggle active state
+                current = user_tracks[alert_key].get("active", True)
+                user_tracks[alert_key]["active"] = not current
+                save_json(TRACKERS_FILE, trackers)
+
+                new_status = "enabled" if user_tracks[alert_key]["active"] else "disabled"
+                await query.edit_message_text(f"✅ Alert {new_status}.")
+            else:
+                await query.edit_message_text("❌ Alert not found.")
 
     async def setbuy_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle setbuy button callbacks."""
@@ -853,18 +964,19 @@ class PumpFunBot:
             
             trackers[str(user_id)][f"fdv_alert_{mint}"] = {
                 "mint": mint,
-                "target_fdv": value,
+                "target_fdv": target_fdv,
                 "created_at": datetime.utcnow().isoformat(),
+                "active": True,
             }
             save_json(TRACKERS_FILE, trackers)
-            
+        
             # Start FDV alert tracker if not already running
             fdv_key = f"fdv_{user_id}"
             if fdv_key not in self.tracker_tasks or self.tracker_tasks[fdv_key].done():
                 self.tracker_tasks[fdv_key] = asyncio.create_task(
                     self.fdv_alert_tracker(user_id)
                 )
-            
+        
             await update.message.reply_html(
                 f"✅ <b>FDV Alert Set!</b>\n\n"
                 f"Target: <b>${value:,.0f}</b>\n\n"
@@ -1255,10 +1367,10 @@ class PumpFunBot:
                 trackers = load_json(TRACKERS_FILE)
                 user_tracks = trackers.get(str(user_id), {})
                 
-                # Get active FDV alerts
+                # Get active FDV alerts only
                 fdv_alerts = {
                     k: v for k, v in user_tracks.items()
-                    if k.startswith("fdv_alert_") and v.get("target_fdv")
+                    if k.startswith("fdv_alert_") and v.get("target_fdv") and v.get("active", True)
                 }
                 
                 if not fdv_alerts:
