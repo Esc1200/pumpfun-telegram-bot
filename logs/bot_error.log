@@ -3489,3 +3489,21 @@ connector: <aiohttp.connector.TCPConnector object at 0x7a4f62781ad0>
 2026-09-04 22:01:40,646 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
 2026-09-04 22:01:50,877 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
 2026-09-04 22:02:00,999 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 22:02:10,721 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 22:02:10,722 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2026-09-04 22:02:10,723 - telegram.ext.Application - INFO - Application.stop() complete
+2026-09-04 22:02:10,798 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Task-17' coro=<PumpFunBot.fdv_alert_tracker() running at /home/administrator/pumpfun-telegram-bot/main.py:1542> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+2026-09-04 22:02:10,798 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x733afbb2f150>
+2026-09-04 22:02:10,799 - asyncio - ERROR - Unclosed connector
+connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x733af8b1b310>, 3617054.703117138)]']
+connector: <aiohttp.connector.TCPConnector object at 0x733af8ba5a50>
+2026-09-04 22:02:12,000 - __main__ - INFO - Bot started!
+2026-09-04 22:02:12,712 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getMe "HTTP/1.1 200 OK"
+2026-09-04 22:02:12,851 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/setMyCommands "HTTP/1.1 200 OK"
+2026-09-04 22:02:12,853 - __main__ - INFO - Bot command menu set
+2026-09-04 22:02:12,969 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/deleteWebhook "HTTP/1.1 200 OK"
+2026-09-04 22:02:12,972 - telegram.ext.Application - INFO - Application started
+2026-09-04 22:02:23,546 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 22:02:33,659 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
