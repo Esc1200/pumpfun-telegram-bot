@@ -760,7 +760,7 @@ class PumpFunBot:
     # ═══════════════════════════════════════════════════════════════
 
     async def run(self):
-        """Run the bot."""
+        """Run the bot (blocking)."""
         await self.initialize()
         logger.info("Bot started!")
         await self.app.run_polling(allowed_updates=Update.ALL_TYPES)
