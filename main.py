@@ -1246,7 +1246,9 @@ class PumpFunBot:
         """Background task that monitors FDV alerts and notifies when crossed."""
         logger.info(f"Starting FDV alert tracker for user {user_id}")
         
-        notified_alerts: set = set()
+        # Track which alerts have been triggered and their initial state
+        alerted_crossings: set = set()  # Tracks mint+target that have been notified
+        previous_state: dict = {}  # mint+target -> "above" or "below"
         
         while True:
             try:
@@ -1260,12 +1262,12 @@ class PumpFunBot:
                 }
                 
                 if not fdv_alerts:
-                    await asyncio.sleep(10)
+                    await asyncio.sleep(5)
                     continue
                 
                 client = self.get_client(user_id)
                 if not client:
-                    await asyncio.sleep(10)
+                    await asyncio.sleep(5)
                     continue
                 
                 for alert_key, alert in fdv_alerts.items():
@@ -1281,15 +1283,35 @@ class PumpFunBot:
                             continue
                         
                         current_fdv = info.market_cap_usd
+                        alert_id = f"{mint}_{target_fdv}"
                         
-                        # Check if FDV crossed the target (going up)
+                        # Determine current side
                         if current_fdv >= target_fdv:
-                            alert_id = f"{mint}_{target_fdv}"
+                            current_side = "above"
+                        else:
+                            current_side = "below"
+                        
+                        # Initialize state on first check
+                        if alert_id not in previous_state:
+                            previous_state[alert_id] = current_side
+                            continue  # Skip first check to establish baseline
+                        
+                        prev_side = previous_state[alert_id]
+                        
+                        # Check if crossed the target (either direction)
+                        crossed = False
+                        if prev_side == "below" and current_side == "above":
+                            crossed = True  # Crossed UP through target
+                        elif prev_side == "above" and current_side == "below":
+                            crossed = True  # Crossed DOWN through target
+                        
+                        # Update state
+                        previous_state[alert_id] = current_side
+                        
+                        # Only notify once per crossing
+                        if crossed and alert_id not in alerted_crossings:
+                            alerted_crossings.add(alert_id)
                             
-                            # Only notify once per alert
-                            if alert_id not in notified_alerts:
-                                notified_alerts.add(alert_id)
-                                
                             # Build notification with Buy/Sell buttons
                             keyboard = [
                                 [
@@ -1305,11 +1327,14 @@ class PumpFunBot:
                                     InlineKeyboardButton("🔴 Sell Custom", callback_data=f"fdv_sellcustom_{mint}"),
                                 ],
                             ]
-                                
+                            
+                            # Determine direction text
+                            direction = "📈 UP" if current_side == "above" else "📉 DOWN"
+                            
                             await self.app.bot.send_message(
                                 chat_id=user_id,
                                 text=(
-                                    f"🔔 <b>FDV Alert Triggered!</b>\n\n"
+                                    f"🔔 <b>FDV Alert Triggered!</b> {direction}\n\n"
                                     f"Token: <b>{info.symbol}</b>\n"
                                     f"Target FDV: <b>${target_fdv:,.0f}</b>\n"
                                     f"Current FDV: <b>${current_fdv:,.0f}</b>\n"
