@@ -990,40 +990,40 @@ class PumpFunBot:
             }
             save_json(TRACKERS_FILE, trackers)
         
-            # Start FDV alert tracker if not already running
-            fdv_key = f"fdv_{user_id}"
-            if fdv_key not in self.tracker_tasks or self.tracker_tasks[fdv_key].done():
-                self.tracker_tasks[fdv_key] = asyncio.create_task(
-                    self.fdv_alert_tracker(user_id)
-                )
-        
-            # Edit back to the original grid
-            client = self.get_client(user_id)
-            if client:
-                try:
-                    info = await client.get_token_info(mint)
-                    if info:
-                        sol_balance = await client.get_balance()
-                        token_balance = await client.get_token_balance(mint)
-                        keyboard = [
-                            [InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"), InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25")],
-                            [InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50"), InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50")],
-                            [InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75"), InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75")],
-                            [InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"), InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100")],
-                            [InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}")],
-                        ]
-                        text = f"🪙 <b>{info.symbol}</b> ({info.name})\n\n💰 Your SOL: <b>{sol_balance:.4f}</b>\n🪙 Your tokens: <b>{token_balance:.0f}</b>\n💲 Price: {info.price_sol:.8f} SOL (${info.price_usd:.6f})\n📊 FDV: ${info.market_cap_usd:,.0f}\n\n✅ Alert set for ${value:,.0f}\nSelect action:"
-                        await update.message.reply_html(text, reply_markup=InlineKeyboardMarkup(keyboard))
-                        return
-                except:
-                    pass
-            
-            await update.message.reply_html(
-                f"✅ <b>FDV Alert Set!</b>\n\n"
-                f"Target: <b>${value:,.0f}</b>\n\n"
-                f"I'll notify you when the FDV crosses ${value:,.0f}."
+        # Start FDV alert tracker if not already running
+        fdv_key = f"fdv_{user_id}"
+        if fdv_key not in self.tracker_tasks or self.tracker_tasks[fdv_key].done():
+            self.tracker_tasks[fdv_key] = asyncio.create_task(
+                self.fdv_alert_tracker(user_id)
             )
-            return
+        
+        # Edit back to the original grid
+        client = self.get_client(user_id)
+        if client:
+            try:
+                info = await client.get_token_info(mint)
+                if info:
+                    sol_balance = await client.get_balance()
+                    token_balance = await client.get_token_balance(mint)
+                    keyboard = [
+                        [InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"), InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25")],
+                        [InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50"), InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50")],
+                        [InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75"), InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75")],
+                        [InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"), InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100")],
+                        [InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}")],
+                    ]
+                    text = f"🪙 <b>{info.symbol}</b> ({info.name})\n\n💰 Your SOL: <b>{sol_balance:.4f}</b>\n🪙 Your tokens: <b>{token_balance:.0f}</b>\n💲 Price: {info.price_sol:.8f} SOL (${info.price_usd:.6f})\n📊 FDV: ${info.market_cap_usd:,.0f}\n\n✅ Alert set for ${value:,.0f}\nSelect action:"
+                    await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+                    return
+            except:
+                pass
+        
+        await query.edit_message_text(
+            f"✅ <b>FDV Alert Set!</b>\n\n"
+            f"Target: <b>${value:,.0f}</b>\n\n"
+            f"I'll notify you when the FDV crosses ${value:,.0f}."
+        )
+        return
         
         # Check for FDV buy input
         if "awaiting_fdv_buy" in context.user_data:
@@ -1059,7 +1059,7 @@ class PumpFunBot:
                         [InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}")],
                     ]
                     text = f"🪙 <b>{info.symbol}</b> ({info.name})\n\n✅ <b>Buy Successful!</b>\n\nSpent: {amount_sol:.4f} SOL\nTX: <code>{tx}</code>\n\nSelect action:"
-                    await update.message.reply_html(text, reply_markup=InlineKeyboardMarkup(keyboard))
+                    await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
                     return
             except Exception as e:
                 await update.message.reply_text(f"❌ Buy failed: {e}")
