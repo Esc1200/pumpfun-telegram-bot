@@ -168,7 +168,7 @@ class PumpFunClient:
 
         # Derive bonding curve PDA
         bonding_curve_pubkey, _ = Pubkey.find_program_address(
-            [b"bonding-curve", mint_pubkey.as_ref()],
+            [b"bonding-curve", bytes(mint_pubkey)],
             PUMP_FUN_PROGRAM,
         )
 
@@ -420,16 +420,16 @@ class PumpFunClient:
                       token_prog: Pubkey, creator: Pubkey) -> Instruction:
         """Build buy_v2 instruction (27 accounts)."""
         creator_vault, _ = Pubkey.find_program_address(
-            [b"creator-vault", creator.as_ref()], PUMP_FUN_PROGRAM
+            [b"creator-vault", bytes(creator)], PUMP_FUN_PROGRAM
         )
         user_vol_accumulator, _ = Pubkey.find_program_address(
-            [b"user_volume_accumulator", self.keypair.pubkey().as_ref()], PUMP_FUN_PROGRAM
+            [b"user_volume_accumulator", bytes(self.keypair.pubkey())], PUMP_FUN_PROGRAM
         )
         fee_config, _ = Pubkey.find_program_address(
-            [b"fee_config", PUMP_FUN_PROGRAM.as_ref()], PUMP_FEE_PROGRAM
+            [b"fee_config", bytes(PUMP_FUN_PROGRAM)], PUMP_FEE_PROGRAM
         )
         sharing_config, _ = Pubkey.find_program_address(
-            [b"sharing-config", mint.as_ref()], PUMP_FEE_PROGRAM
+            [b"sharing-config", bytes(mint)], PUMP_FEE_PROGRAM
         )
 
         fee_recipient = NORMAL_FEE_RECIPIENTS[0]
@@ -437,27 +437,27 @@ class PumpFunClient:
 
         # Associated token accounts
         assoc_quote_fee_recipient, _ = Pubkey.find_program_address(
-            [fee_recipient.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(fee_recipient), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_quote_buyback_fee_recipient, _ = Pubkey.find_program_address(
-            [buyback_fee_recipient.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(buyback_fee_recipient), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_quote_bonding_curve, _ = Pubkey.find_program_address(
-            [bonding_curve.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(bonding_curve), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_quote_user, _ = Pubkey.find_program_address(
-            [self.keypair.pubkey().as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(self.keypair.pubkey()), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_creator_vault, _ = Pubkey.find_program_address(
-            [creator_vault.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(creator_vault), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_user_volume_accumulator, _ = Pubkey.find_program_address(
-            [user_vol_accumulator.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(user_vol_accumulator), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
 
@@ -494,7 +494,7 @@ class PumpFunClient:
             AccountMeta(PUMP_FUN_PROGRAM, False, False),
         ]
 
-        return Instruction(PUMP_FUN_PROGRAM, accounts, data)
+        return Instruction(program_id=PUMP_FUN_PROGRAM, accounts=accounts, data=data)
 
     def _build_sell_v2(self, mint: Pubkey, bonding_curve: Pubkey,
                        assoc_bonding_curve: Pubkey, user_ata: Pubkey,
@@ -502,43 +502,43 @@ class PumpFunClient:
                        token_prog: Pubkey, creator: Pubkey) -> Instruction:
         """Build sell_v2 instruction (26 accounts)."""
         creator_vault, _ = Pubkey.find_program_address(
-            [b"creator-vault", creator.as_ref()], PUMP_FUN_PROGRAM
+            [b"creator-vault", bytes(creator)], PUMP_FUN_PROGRAM
         )
         user_vol_accumulator, _ = Pubkey.find_program_address(
-            [b"user_volume_accumulator", self.keypair.pubkey().as_ref()], PUMP_FUN_PROGRAM
+            [b"user_volume_accumulator", bytes(self.keypair.pubkey())], PUMP_FUN_PROGRAM
         )
         fee_config, _ = Pubkey.find_program_address(
-            [b"fee_config", PUMP_FUN_PROGRAM.as_ref()], PUMP_FEE_PROGRAM
+            [b"fee_config", bytes(PUMP_FUN_PROGRAM)], PUMP_FEE_PROGRAM
         )
         sharing_config, _ = Pubkey.find_program_address(
-            [b"sharing-config", mint.as_ref()], PUMP_FEE_PROGRAM
+            [b"sharing-config", bytes(mint)], PUMP_FEE_PROGRAM
         )
 
         fee_recipient = NORMAL_FEE_RECIPIENTS[0]
         buyback_fee_recipient = BUYBACK_FEE_RECIPIENTS[5]
 
         assoc_quote_fee_recipient, _ = Pubkey.find_program_address(
-            [fee_recipient.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(fee_recipient), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_quote_buyback_fee_recipient, _ = Pubkey.find_program_address(
-            [buyback_fee_recipient.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(buyback_fee_recipient), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_quote_bonding_curve, _ = Pubkey.find_program_address(
-            [bonding_curve.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(bonding_curve), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_creator_vault, _ = Pubkey.find_program_address(
-            [creator_vault.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(creator_vault), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_user_volume_accumulator, _ = Pubkey.find_program_address(
-            [user_vol_accumulator.as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(user_vol_accumulator), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
         assoc_quote_user, _ = Pubkey.find_program_address(
-            [self.keypair.pubkey().as_ref(), LEGACY_TOKEN_PROGRAM.as_ref(), WSOL_MINT.as_ref()],
+            [bytes(self.keypair.pubkey()), bytes(LEGACY_TOKEN_PROGRAM), bytes(WSOL_MINT)],
             ASSOC_TOKEN_PROGRAM
         )
 
@@ -573,12 +573,12 @@ class PumpFunClient:
             AccountMeta(PUMP_FUN_PROGRAM, False, False),
         ]
 
-        return Instruction(PUMP_FUN_PROGRAM, accounts, data)
+        return Instruction(program_id=PUMP_FUN_PROGRAM, accounts=accounts, data=data)
 
     def _build_init_user_volume_accumulator(self) -> Instruction:
         """Build initUserVolumeAccumulator instruction."""
         user_vol_accumulator, _ = Pubkey.find_program_address(
-            [b"user_volume_accumulator", self.keypair.pubkey().as_ref()],
+            [b"user_volume_accumulator", bytes(self.keypair.pubkey())],
             PUMP_FUN_PROGRAM,
         )
         accounts = [
@@ -589,7 +589,7 @@ class PumpFunClient:
             AccountMeta(PUMP_EVENT_AUTHORITY, False, False),
             AccountMeta(PUMP_FUN_PROGRAM, False, False),
         ]
-        return Instruction(PUMP_FUN_PROGRAM, accounts, INIT_USER_VOLUME_ACCUMULATOR_DISCRIMINATOR)
+        return Instruction(program_id=PUMP_FUN_PROGRAM, accounts=accounts, data=INIT_USER_VOLUME_ACCUMULATOR_DISCRIMINATOR)
 
     def _build_create_idempotent_ata(self, mint: Pubkey, token_prog: Pubkey) -> Instruction:
         """Build create_idempotent ATA instruction."""
@@ -602,7 +602,7 @@ class PumpFunClient:
             AccountMeta(SYSTEM_PROGRAM_ID, False, False),
             AccountMeta(token_prog, False, False),
         ]
-        return Instruction(ASSOC_TOKEN_PROGRAM, accounts, bytes([1]))
+        return Instruction(program_id=ASSOC_TOKEN_PROGRAM, accounts=accounts, data=bytes([1]))
 
     # ═══════════════════════════════════════════════════════════════
     # Transaction Sending
@@ -671,7 +671,7 @@ class PumpFunClient:
     def _get_associated_token_address(wallet: Pubkey, mint: Pubkey, token_prog: Pubkey) -> Pubkey:
         """Derive associated token address."""
         ata, _ = Pubkey.find_program_address(
-            [wallet.as_ref(), token_prog.as_ref(), mint.as_ref()],
+            [bytes(wallet), bytes(token_prog), bytes(mint)],
             ASSOC_TOKEN_PROGRAM,
         )
         return ata
