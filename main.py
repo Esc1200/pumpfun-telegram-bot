@@ -93,42 +93,15 @@ class PumpFunBot:
         self.app.add_handler(CommandHandler("tracks", self.cmd_list_tracks))
         self.app.add_handler(CommandHandler("setpct", self.cmd_set_percentage))
         
-        # Buy conversation handler
-        buy_conv = ConversationHandler(
-            entry_points=[CommandHandler("buy", self.cmd_buy)],
-            states={
-                WAITING_FOR_MINT: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, self.buy_receive_mint)
-                ],
-                WAITING_FOR_PERCENTAGE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, self.buy_receive_percentage)
-                ],
-                CONFIRM_BUY: [
-                    CallbackQueryHandler(self.buy_confirm, pattern="^buy_confirm$"),
-                    CallbackQueryHandler(self.buy_cancel, pattern="^buy_cancel$"),
-                ],
-            },
-            fallbacks=[CommandHandler("cancel", self.buy_cancel_cmd)],
-        )
-        self.app.add_handler(buy_conv)
-        
-        # Sell conversation handler
-        sell_conv = ConversationHandler(
-            entry_points=[CommandHandler("sell", self.cmd_sell)],
-            states={
-                WAITING_FOR_MINT: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, self.sell_receive_mint)
-                ],
-                WAITING_FOR_PERCENTAGE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, self.sell_receive_percentage)
-                ],
-            },
-            fallbacks=[CommandHandler("cancel", self.buy_cancel_cmd)],
-        )
-        self.app.add_handler(sell_conv)
-        
-        # Callback handler for sell buttons
+        # Buy/Sell button callbacks
+        self.app.add_handler(CallbackQueryHandler(self.buy_button_callback, pattern="^buy_"))
         self.app.add_handler(CallbackQueryHandler(self.sell_button_callback, pattern="^sell_"))
+        
+        # Paste contract address → show buy/sell buttons
+        self.app.add_handler(MessageHandler(
+            filters.TEXT & ~filters.COMMAND & filters.Regex(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$'),
+            self.paste_contract_handler
+        ))
 
     async def _set_commands(self, application: Application):
         """Set the bot command menu in Telegram UI."""
@@ -777,6 +750,129 @@ class PumpFunBot:
             except Exception as e:
                 logger.error(f"Tracker error: {e}")
                 await asyncio.sleep(10)
+
+    # ═══════════════════════════════════════════════════════════════
+    # Paste Contract → Buy/Sell Grid
+    # ═══════════════════════════════════════════════════════════════
+
+    async def paste_contract_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """When user pastes a contract address, show buy/sell grid buttons."""
+        text = update.message.text.strip()
+        
+        # Validate it's a Solana pubkey
+        try:
+            from solders.pubkey import Pubkey
+            Pubkey.from_string(text)
+        except:
+            return  # Not a valid address, ignore
+        
+        user_id = update.effective_user.id
+        client = self.get_client(user_id)
+        
+        if not client:
+            await update.message.reply_text("❌ No wallet imported. Use /import first.")
+            return
+        
+        # Fetch token info
+        try:
+            info = await client.get_token_info(text)
+            if not info:
+                await update.message.reply_text("❌ Token not found on pump.fun.")
+                return
+            
+            # Get balances
+            sol_balance = await client.get_balance()
+            token_balance = await client.get_token_balance(text)
+            
+            # Build grid buttons
+            keyboard = [
+                # Buy row
+                [
+                    InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{text}_25"),
+                    InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{text}_50"),
+                    InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{text}_75"),
+                    InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{text}_100"),
+                ],
+                # Sell row
+                [
+                    InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{text}_25"),
+                    InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{text}_50"),
+                    InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{text}_75"),
+                    InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{text}_100"),
+                ],
+            ]
+            
+            await update.message.reply_html(
+                f"🪙 <b>{info.symbol}</b> ({info.name})\n\n"
+                f"💰 Your SOL: <b>{sol_balance:.4f}</b>\n"
+                f"🪙 Your tokens: <b>{token_balance:.0f}</b>\n"
+                f"💲 Price: {info.price_sol:.8f} SOL\n"
+                f"📊 MCap: ${info.market_cap_usd:,.0f}\n\n"
+                f"Select action:",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {e}")
+
+    async def buy_button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle buy percentage buttons (25/50/75/100%)."""
+        query = update.callback_query
+        await query.answer()
+        
+        # Parse callback data: buy_<mint>_<percentage>
+        parts = query.data.split("_")
+        if len(parts) != 3:
+            return
+        
+        _, mint, pct_str = parts
+        try:
+            pct = float(pct_str)
+        except:
+            return
+        
+        user_id = update.effective_user.id
+        client = self.get_client(user_id)
+        
+        if not client:
+            await query.edit_message_text("❌ No wallet imported. Use /import first.")
+            return
+        
+        try:
+            balance = await client.get_balance()
+            amount_sol = balance * (pct / 100)
+            
+            if amount_sol < 0.001:
+                await query.edit_message_text("❌ Balance too low. Need at least 0.001 SOL.")
+                return
+            
+            await query.edit_message_text(
+                f"⏳ Buying with {amount_sol:.4f} SOL ({pct}%)..."
+            )
+            
+            tx = await client.buy_token(mint, amount_sol)
+            
+            # Save position
+            positions = load_json(POSITIONS_FILE)
+            pos_id = f"{user_id}_{mint}_{int(datetime.utcnow().timestamp())}"
+            positions[pos_id] = {
+                "user_id": user_id,
+                "mint": mint,
+                "entry_sol": amount_sol,
+                "token_amount": 0,
+                "bought_at": datetime.utcnow().isoformat(),
+                "tx": tx,
+            }
+            save_json(POSITIONS_FILE, positions)
+            
+            await query.edit_message_text(
+                f"✅ <b>Buy Successful!</b>\n\n"
+                f"Spent: {amount_sol:.4f} SOL ({pct}%)\n"
+                f"TX: <code>{tx}</code>\n\n"
+                f"Use /positions to track.",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            await query.edit_message_text(f"❌ Buy failed: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════
