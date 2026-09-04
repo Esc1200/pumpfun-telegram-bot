@@ -106,7 +106,7 @@ class PumpFunBot:
         self.app.add_handler(CallbackQueryHandler(self.fdv_buy_callback, pattern="^fdv_buy_"))
         self.app.add_handler(CallbackQueryHandler(self.fdv_sell_callback, pattern="^fdv_sell_"))
         self.app.add_handler(CallbackQueryHandler(self.fdv_sellcustom_callback, pattern="^fdv_sellcustom_"))
-        self.app.add_handler(CallbackQueryHandler(self.alerts_callback, pattern="^alerts_"))
+        self.app.add_handler(CallbackQueryHandler(self.alerts_callback, pattern="^at_"))
         
         # Paste address → detect token/wallet → show buttons
         self.app.add_handler(MessageHandler(
@@ -681,15 +681,17 @@ class PumpFunBot:
             # Toggle button
             action = "Disable" if active else "Enable"
             emoji = "🔴" if active else "🟢"
+            # Use shortened mint (last 8 chars) to fit 64-byte callback limit
+            mint_short = mint[-8:] if len(mint) > 8 else mint
             keyboard.append([
                 InlineKeyboardButton(
                     f"{emoji} {action} {symbol}",
-                    callback_data=f"alerts_toggle_{mint}_{target_fdv}"
+                    callback_data=f"at_{mint_short}_{target_fdv}"
                 )
             ])
         
         keyboard.append([
-            InlineKeyboardButton("🗑️ Delete All", callback_data="alerts_delete_all")
+            InlineKeyboardButton("🗑️ Delete All", callback_data="at_delete_all")
         ])
         
         await update.message.reply_html(
@@ -727,7 +729,7 @@ class PumpFunBot:
         query = update.callback_query
         await query.answer()
 
-        data = query.data.replace("alerts_", "")
+        data = query.data.replace("at_", "")
         user_id = update.effective_user.id
 
         if data == "delete_all":
@@ -748,14 +750,20 @@ class PumpFunBot:
         # Toggle alert
         if data.startswith("toggle_"):
             parts = data.replace("toggle_", "").rsplit("_", 1)
-            mint = parts[0]
+            mint_short = parts[0]
             target_fdv = parts[1]
 
             trackers = load_json(TRACKERS_FILE)
             user_tracks = trackers.get(str(user_id), {})
 
-            alert_key = f"fdv_alert_{mint}"
-            if alert_key in user_tracks:
+            # Find the matching alert by comparing last 8 chars of mint
+            alert_key = None
+            for k in user_tracks:
+                if k.startswith("fdv_alert_") and k.endswith(mint_short):
+                    alert_key = k
+                    break
+
+            if alert_key:
                 # Toggle active state
                 current = user_tracks[alert_key].get("active", True)
                 user_tracks[alert_key]["active"] = not current
