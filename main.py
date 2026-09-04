@@ -937,11 +937,22 @@ class PumpFunBot:
             await query.edit_message_text(f"⏳ Selling {sell_amount:.0f} tokens ({pct}%)...")
             
             tx = await client.sell_token(mint, sell_amount)
-            await query.edit_message_text(
-                f"✅ Sold {sell_amount:.0f} tokens ({pct}%)\n"
-                f"TX: <code>{tx}</code>",
-                parse_mode="HTML"
-            )
+            
+            # Edit back to grid
+            info = await client.get_token_info(mint)
+            if info:
+                sol_balance = await client.get_balance()
+                token_balance = await client.get_token_balance(mint)
+                keyboard = [
+                    [InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"), InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25")],
+                    [InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50"), InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50")],
+                    [InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75"), InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75")],
+                    [InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"), InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100")],
+                    [InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}")],
+                ]
+                text = f"🪙 <b>{info.symbol}</b> ({info.name})\n\n✅ <b>Sold {sell_amount:.0f} tokens ({pct}%)</b>\n\nTX: <code>{tx}</code>\n\nSelect action:"
+                await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+                return
         except Exception as e:
             await query.edit_message_text(f"❌ Sell failed: {e}")
 
