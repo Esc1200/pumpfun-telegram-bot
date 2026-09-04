@@ -1952,7 +1952,10 @@ class PumpFunBot:
         query = update.callback_query
         await query.answer()
         
-        mint = query.data.replace("fdv_alert_", "")
+        # Extract mint and optional target from callback data
+        # Format: fdv_alert_{mint} or fdv_alert_{mint}_{target}
+        parts = query.data.replace("fdv_alert_", "").rsplit("_", 1)
+        mint = parts[0]
         user_id = update.effective_user.id
         
         # Show FDV alert options
