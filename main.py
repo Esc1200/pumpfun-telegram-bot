@@ -78,6 +78,7 @@ class PumpFunBot:
         self.app = (
             Application.builder()
             .token(TELEGRAM_BOT_TOKEN)
+            .post_init(self._set_commands)
             .build()
         )
         
