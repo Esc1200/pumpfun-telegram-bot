@@ -779,8 +779,10 @@ class PumpFunBot:
 
                 new_status = "enabled" if user_tracks[alert_key]["active"] else "disabled"
                 await query.edit_message_text(f"✅ Alert {new_status}.")
+                return
             else:
                 await query.edit_message_text("❌ Alert not found.")
+                return
 
     async def setbuy_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle setbuy button callbacks."""
