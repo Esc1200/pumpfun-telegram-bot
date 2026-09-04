@@ -102,6 +102,9 @@ class PumpFunBot:
         self.app.add_handler(CallbackQueryHandler(self.fdv_alert_callback, pattern="^fdv_alert_"))
         self.app.add_handler(CallbackQueryHandler(self.fdv_set_callback, pattern="^fdv_set_"))
         self.app.add_handler(CallbackQueryHandler(self.fdv_custom_callback, pattern="^fdv_custom_"))
+        self.app.add_handler(CallbackQueryHandler(self.fdv_buy_callback, pattern="^fdv_buy_"))
+        self.app.add_handler(CallbackQueryHandler(self.fdv_sell_callback, pattern="^fdv_sell_"))
+        self.app.add_handler(CallbackQueryHandler(self.fdv_sellcustom_callback, pattern="^fdv_sellcustom_"))
         
         # Paste address → detect token/wallet → show buttons
         self.app.add_handler(MessageHandler(
@@ -761,6 +764,71 @@ class PumpFunBot:
             parse_mode="HTML"
         )
 
+    async def fdv_buy_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle FDV alert buy button - asks for SOL amount."""
+        query = update.callback_query
+        await query.answer()
+        
+        mint = query.data.replace("fdv_buy_", "")
+        user_id = update.effective_user.id
+        
+        context.user_data["awaiting_fdv_buy"] = mint
+        await query.edit_message_text(
+            "🟢 <b>Buy with SOL</b>\n\n"
+            "Send SOL amount to spend (e.g. <code>0.5</code>)\n"
+            "Minimum: 0.001 SOL",
+            parse_mode="HTML"
+        )
+
+    async def fdv_sell_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle FDV alert sell percentage buttons."""
+        query = update.callback_query
+        await query.answer()
+        
+        data = query.data.replace("fdv_sell_", "")
+        parts = data.rsplit("_", 1)
+        mint = parts[0]
+        pct = float(parts[1])
+        user_id = update.effective_user.id
+        
+        client = self.get_client(user_id)
+        if not client:
+            await query.edit_message_text("❌ No wallet imported.")
+            return
+        
+        try:
+            token_balance = await client.get_token_balance(mint)
+            if token_balance <= 0:
+                await query.edit_message_text("❌ You don't hold this token.")
+                return
+            
+            sell_amount = token_balance * (pct / 100)
+            await query.edit_message_text(f"⏳ Selling {sell_amount:.0f} tokens ({pct}%)...")
+            
+            tx = await client.sell_token(mint, sell_amount)
+            await query.edit_message_text(
+                f"✅ Sold {sell_amount:.0f} tokens ({pct}%)\n"
+                f"TX: <code>{tx}</code>",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            await query.edit_message_text(f"❌ Sell failed: {e}")
+
+    async def fdv_sellcustom_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle FDV alert custom sell button."""
+        query = update.callback_query
+        await query.answer()
+        
+        mint = query.data.replace("fdv_sellcustom_", "")
+        user_id = update.effective_user.id
+        
+        context.user_data["awaiting_fdv_sell"] = mint
+        await query.edit_message_text(
+            "✏️ <b>Custom Sell Amount</b>\n\n"
+            "Send token amount to sell (e.g. <code>5000</code>)",
+            parse_mode="HTML"
+        )
+
     async def specify_amount_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle custom SOL/percentage/FDV amount input."""
         user_id = update.effective_user.id
@@ -802,6 +870,66 @@ class PumpFunBot:
                 f"Target: <b>${value:,.0f}</b>\n\n"
                 f"I'll notify you when the FDV crosses ${value:,.0f}."
             )
+            return
+        
+        # Check for FDV buy input
+        if "awaiting_fdv_buy" in context.user_data:
+            mint = context.user_data.pop("awaiting_fdv_buy")
+            try:
+                amount_sol = float(text)
+            except:
+                await update.message.reply_text("❌ Invalid number.")
+                return
+            
+            if amount_sol < 0.001:
+                await update.message.reply_text("❌ Minimum is 0.001 SOL.")
+                return
+            
+            client = self.get_client(user_id)
+            if not client:
+                await update.message.reply_text("❌ No wallet imported.")
+                return
+            
+            try:
+                await update.message.reply_text(f"⏳ Buying with {amount_sol:.4f} SOL...")
+                tx = await client.buy_token(mint, amount_sol)
+                await update.message.reply_html(
+                    f"✅ <b>Buy Successful!</b>\n\n"
+                    f"Spent: {amount_sol:.4f} SOL\n"
+                    f"TX: <code>{tx}</code>"
+                )
+            except Exception as e:
+                await update.message.reply_text(f"❌ Buy failed: {e}")
+            return
+        
+        # Check for FDV custom sell input
+        if "awaiting_fdv_sell" in context.user_data:
+            mint = context.user_data.pop("awaiting_fdv_sell")
+            try:
+                sell_amount = float(text)
+            except:
+                await update.message.reply_text("❌ Invalid number.")
+                return
+            
+            if sell_amount <= 0:
+                await update.message.reply_text("❌ Amount must be greater than 0.")
+                return
+            
+            client = self.get_client(user_id)
+            if not client:
+                await update.message.reply_text("❌ No wallet imported.")
+                return
+            
+            try:
+                await update.message.reply_text(f"⏳ Selling {sell_amount:.0f} tokens...")
+                tx = await client.sell_token(mint, sell_amount)
+                await update.message.reply_html(
+                    f"✅ Sold {sell_amount:.0f} tokens\n"
+                    f"TX: <code>{tx}</code>",
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                await update.message.reply_text(f"❌ Sell failed: {e}")
             return
         
         # Check for SOL/pct input
@@ -1162,22 +1290,40 @@ class PumpFunBot:
                             if alert_id not in notified_alerts:
                                 notified_alerts.add(alert_id)
                                 
-                                await self.app.bot.send_message(
-                                    chat_id=user_id,
-                                    text=(
-                                        f"🔔 <b>FDV Alert Triggered!</b>\n\n"
-                                        f"Token: <b>{info.symbol}</b>\n"
-                                        f"Target FDV: <b>${target_fdv:,.0f}</b>\n"
-                                        f"Current FDV: <b>${current_fdv:,.0f}</b>\n"
-                                        f"Mint: <code>{mint[:20]}...</code>"
-                                    ),
-                                    parse_mode="HTML"
-                                )
+                            # Build notification with Buy/Sell buttons
+                            keyboard = [
+                                [
+                                    InlineKeyboardButton("🟢 Buy (SOL)", callback_data=f"fdv_buy_{mint}"),
+                                    InlineKeyboardButton("🔴 Sell 25%", callback_data=f"fdv_sell_{mint}_25"),
+                                ],
+                                [
+                                    InlineKeyboardButton("🔴 Sell 50%", callback_data=f"fdv_sell_{mint}_50"),
+                                    InlineKeyboardButton("🔴 Sell 75%", callback_data=f"fdv_sell_{mint}_75"),
+                                ],
+                                [
+                                    InlineKeyboardButton("🔴 Sell 100%", callback_data=f"fdv_sell_{mint}_100"),
+                                    InlineKeyboardButton("🔴 Sell Custom", callback_data=f"fdv_sellcustom_{mint}"),
+                                ],
+                            ]
+                                
+                            await self.app.bot.send_message(
+                                chat_id=user_id,
+                                text=(
+                                    f"🔔 <b>FDV Alert Triggered!</b>\n\n"
+                                    f"Token: <b>{info.symbol}</b>\n"
+                                    f"Target FDV: <b>${target_fdv:,.0f}</b>\n"
+                                    f"Current FDV: <b>${current_fdv:,.0f}</b>\n"
+                                    f"Mint: <code>{mint[:20]}...</code>\n\n"
+                                    f"Quick trade:"
+                                ),
+                                parse_mode="HTML",
+                                reply_markup=InlineKeyboardMarkup(keyboard)
+                            )
                     except Exception as e:
                         logger.debug(f"FDV check failed for {mint}: {e}")
                 
-                # Poll every 10 seconds
-                await asyncio.sleep(10)
+                # Poll every 5 seconds
+                await asyncio.sleep(5)
                 
             except asyncio.CancelledError:
                 break
