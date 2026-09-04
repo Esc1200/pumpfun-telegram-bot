@@ -94,11 +94,14 @@ class PumpFunBot:
         self.app.add_handler(CommandHandler("setbuy", self.cmd_set_buy))
         self.app.add_handler(CallbackQueryHandler(self.setbuy_callback, pattern="^setbuy_"))
         
-        # Buy/Sell/Track button callbacks
+        # Buy/Sell/Track/Alert button callbacks
         self.app.add_handler(CallbackQueryHandler(self.buy_button_callback, pattern="^buy_"))
         self.app.add_handler(CallbackQueryHandler(self.sell_button_callback, pattern="^sell_"))
         self.app.add_handler(CallbackQueryHandler(self.track_creator_callback, pattern="^track_creator_"))
         self.app.add_handler(CallbackQueryHandler(self.track_trader_callback, pattern="^track_trader_"))
+        self.app.add_handler(CallbackQueryHandler(self.fdv_alert_callback, pattern="^fdv_alert_"))
+        self.app.add_handler(CallbackQueryHandler(self.fdv_set_callback, pattern="^fdv_set_"))
+        self.app.add_handler(CallbackQueryHandler(self.fdv_custom_callback, pattern="^fdv_custom_"))
         
         # Paste address → detect token/wallet → show buttons
         self.app.add_handler(MessageHandler(
@@ -705,8 +708,103 @@ class PumpFunBot:
     # Wallet Tracker Loop
     # ═══════════════════════════════════════════════════════════════
 
+    async def fdv_set_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle FDV target selection."""
+        query = update.callback_query
+        await query.answer()
+        
+        data = query.data.replace("fdv_set_", "")
+        parts = data.rsplit("_", 1)
+        mint = parts[0]
+        target_fdv = float(parts[1])
+        user_id = update.effective_user.id
+        
+        # Save FDV alert
+        trackers = load_json(TRACKERS_FILE)
+        if str(user_id) not in trackers:
+            trackers[str(user_id)] = {}
+        
+        trackers[str(user_id)][f"fdv_alert_{mint}"] = {
+            "mint": mint,
+            "target_fdv": target_fdv,
+            "created_at": datetime.utcnow().isoformat(),
+        }
+        save_json(TRACKERS_FILE, trackers)
+        
+        # Start FDV alert tracker if not already running
+        fdv_key = f"fdv_{user_id}"
+        if fdv_key not in self.tracker_tasks or self.tracker_tasks[fdv_key].done():
+            self.tracker_tasks[fdv_key] = asyncio.create_task(
+                self.fdv_alert_tracker(user_id)
+            )
+        
+        await query.edit_message_text(
+            f"✅ <b>FDV Alert Set!</b>\n\n"
+            f"Target: <b>${target_fdv:,.0f}</b>\n\n"
+            f"I'll notify you when the FDV crosses ${target_fdv:,.0f}.",
+            parse_mode="HTML"
+        )
+
+    async def fdv_custom_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle custom FDV amount input."""
+        query = update.callback_query
+        await query.answer()
+        
+        mint = query.data.replace("fdv_custom_", "")
+        user_id = update.effective_user.id
+        
+        context.user_data["awaiting_fdv"] = mint
+        await query.edit_message_text(
+            "✏️ <b>Custom FDV Target</b>\n\n"
+            "Send a custom FDV amount (e.g. <code>250000</code> for $250K)\n"
+            "Minimum: $1,000",
+            parse_mode="HTML"
+        )
+
     async def specify_amount_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle custom SOL/percentage amount input."""
+        """Handle custom SOL/percentage/FDV amount input."""
+        user_id = update.effective_user.id
+        text = update.message.text.strip()
+        
+        # Check for FDV input first
+        if "awaiting_fdv" in context.user_data:
+            mint = context.user_data.pop("awaiting_fdv")
+            try:
+                value = float(text)
+            except:
+                await update.message.reply_text("❌ Invalid number.")
+                return
+            
+            if value < 1000:
+                await update.message.reply_text("❌ Minimum FDV is $1,000.")
+                return
+            
+            trackers = load_json(TRACKERS_FILE)
+            if str(user_id) not in trackers:
+                trackers[str(user_id)] = {}
+            
+            trackers[str(user_id)][f"fdv_alert_{mint}"] = {
+                "mint": mint,
+                "target_fdv": value,
+                "created_at": datetime.utcnow().isoformat(),
+            }
+            save_json(TRACKERS_FILE, trackers)
+            
+            # Start FDV alert tracker if not already running
+            fdv_key = f"fdv_{user_id}"
+            if fdv_key not in self.tracker_tasks or self.tracker_tasks[fdv_key].done():
+                self.tracker_tasks[fdv_key] = asyncio.create_task(
+                    self.fdv_alert_tracker(user_id)
+                )
+            
+            await update.message.reply_html(
+                f"✅ <b>FDV Alert Set!</b>\n\n"
+                f"Target: <b>${value:,.0f}</b>\n\n"
+                f"I'll notify you when the FDV crosses ${value:,.0f}."
+            )
+            return
+        
+        # Check for SOL/pct input
         if "awaiting_specify" not in context.user_data:
             return  # Not expecting input
         
@@ -1013,6 +1111,81 @@ class PumpFunBot:
                 await asyncio.sleep(10)
 
     # ═══════════════════════════════════════════════════════════════
+    # FDV Alert Tracker
+    # ═══════════════════════════════════════════════════════════════
+
+    async def fdv_alert_tracker(self, user_id: int):
+        """Background task that monitors FDV alerts and notifies when crossed."""
+        logger.info(f"Starting FDV alert tracker for user {user_id}")
+        
+        notified_alerts: set = set()
+        
+        while True:
+            try:
+                trackers = load_json(TRACKERS_FILE)
+                user_tracks = trackers.get(str(user_id), {})
+                
+                # Get active FDV alerts
+                fdv_alerts = {
+                    k: v for k, v in user_tracks.items()
+                    if k.startswith("fdv_alert_") and v.get("target_fdv")
+                }
+                
+                if not fdv_alerts:
+                    await asyncio.sleep(10)
+                    continue
+                
+                client = self.get_client(user_id)
+                if not client:
+                    await asyncio.sleep(10)
+                    continue
+                
+                for alert_key, alert in fdv_alerts.items():
+                    mint = alert.get("mint", "")
+                    target_fdv = alert.get("target_fdv", 0)
+                    
+                    if not mint or target_fdv <= 0:
+                        continue
+                    
+                    try:
+                        info = await client.get_token_info(mint)
+                        if not info:
+                            continue
+                        
+                        current_fdv = info.market_cap_usd
+                        
+                        # Check if FDV crossed the target (going up)
+                        if current_fdv >= target_fdv:
+                            alert_id = f"{mint}_{target_fdv}"
+                            
+                            # Only notify once per alert
+                            if alert_id not in notified_alerts:
+                                notified_alerts.add(alert_id)
+                                
+                                await self.app.bot.send_message(
+                                    chat_id=user_id,
+                                    text=(
+                                        f"🔔 <b>FDV Alert Triggered!</b>\n\n"
+                                        f"Token: <b>{info.symbol}</b>\n"
+                                        f"Target FDV: <b>${target_fdv:,.0f}</b>\n"
+                                        f"Current FDV: <b>${current_fdv:,.0f}</b>\n"
+                                        f"Mint: <code>{mint[:20]}...</code>"
+                                    ),
+                                    parse_mode="HTML"
+                                )
+                    except Exception as e:
+                        logger.debug(f"FDV check failed for {mint}: {e}")
+                
+                # Poll every 10 seconds
+                await asyncio.sleep(10)
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"FDV alert tracker error: {e}")
+                await asyncio.sleep(30)
+
+    # ═══════════════════════════════════════════════════════════════
     # Paste Contract → Buy/Sell Grid
     # ═══════════════════════════════════════════════════════════════
 
@@ -1052,7 +1225,7 @@ class PumpFunBot:
         sol_balance = await client.get_balance()
         token_balance = await client.get_token_balance(mint)
         
-        # 2x4 grid: Buy and Sell side by side
+        # 2x5 grid: Buy, Sell, and FDV Alert
         keyboard = [
             [
                 InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"),
@@ -1069,6 +1242,9 @@ class PumpFunBot:
             [
                 InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"),
                 InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100"),
+            ],
+            [
+                InlineKeyboardButton("🔔 FDV Alert", callback_data=f"fdv_alert_{mint}"),
             ],
         ]
         
@@ -1225,6 +1401,50 @@ class PumpFunBot:
             )
         except Exception as e:
             await query.edit_message_text(f"❌ Buy failed: {e}")
+
+    async def fdv_alert_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle FDV alert button."""
+        query = update.callback_query
+        await query.answer()
+        
+        mint = query.data.replace("fdv_alert_", "")
+        user_id = update.effective_user.id
+        
+        # Show FDV alert options
+        keyboard = [
+            [
+                InlineKeyboardButton("$100K", callback_data=f"fdv_set_{mint}_100000"),
+                InlineKeyboardButton("$500K", callback_data=f"fdv_set_{mint}_500000"),
+            ],
+            [
+                InlineKeyboardButton("$1M", callback_data=f"fdv_set_{mint}_1000000"),
+                InlineKeyboardButton("$5M", callback_data=f"fdv_set_{mint}_5000000"),
+            ],
+            [
+                InlineKeyboardButton("$10M", callback_data=f"fdv_set_{mint}_10000000"),
+                InlineKeyboardButton("$50M", callback_data=f"fdv_set_{mint}_50000000"),
+            ],
+            [
+                InlineKeyboardButton("$100M", callback_data=f"fdv_set_{mint}_100000000"),
+                InlineKeyboardButton("✏️ Custom", callback_data=f"fdv_custom_{mint}"),
+            ],
+        ]
+        
+        # Get current FDV
+        client = self.get_client(user_id)
+        try:
+            info = await client.get_token_info(mint)
+            current_fdv = info.market_cap_usd if info else 0
+        except:
+            current_fdv = 0
+        
+        await query.edit_message_text(
+            f"🔔 <b>FDV Alert</b>\n\n"
+            f"Current FDV: <b>${current_fdv:,.0f}</b>\n\n"
+            f"Select target FDV to be notified when crossed:",
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
 
 # ═══════════════════════════════════════════════════════════════
