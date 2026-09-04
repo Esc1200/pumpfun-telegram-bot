@@ -968,7 +968,7 @@ class PumpFunBot:
             
             trackers[str(user_id)][f"fdv_alert_{mint}"] = {
                 "mint": mint,
-                "target_fdv": target_fdv,
+                "target_fdv": value,
                 "created_at": datetime.utcnow().isoformat(),
                 "active": True,
             }
