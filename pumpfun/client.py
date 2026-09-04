@@ -140,12 +140,15 @@ class PumpFunClient:
         # Get the ATA
         mint_pubkey = Pubkey.from_string(mint)
         ata = self._get_associated_token_address(self.keypair.pubkey(), mint_pubkey, LEGACY_TOKEN_PROGRAM)
-        result = await self._rpc_call(
-            "getTokenAccountBalance",
-            [str(ata)]
-        )
-        if "result" in result and result["result"]:
-            return result["result"]["value"]["uiAmount"]
+        try:
+            result = await self._rpc_call(
+                "getTokenAccountBalance",
+                [str(ata)]
+            )
+            if "result" in result and result["result"]:
+                return result["result"]["value"]["uiAmount"]
+        except Exception:
+            pass  # ATA doesn't exist = 0 balance
         return 0.0
 
     async def get_recent_blockhash(self) -> str:
