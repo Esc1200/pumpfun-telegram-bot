@@ -93,11 +93,13 @@ class PumpFunBot:
         self.app.add_handler(CommandHandler("tracks", self.cmd_list_tracks))
         self.app.add_handler(CommandHandler("setpct", self.cmd_set_percentage))
         
-        # Buy/Sell button callbacks
+        # Buy/Sell/Track button callbacks
         self.app.add_handler(CallbackQueryHandler(self.buy_button_callback, pattern="^buy_"))
         self.app.add_handler(CallbackQueryHandler(self.sell_button_callback, pattern="^sell_"))
+        self.app.add_handler(CallbackQueryHandler(self.track_creator_callback, pattern="^track_creator_"))
+        self.app.add_handler(CallbackQueryHandler(self.track_trader_callback, pattern="^track_trader_"))
         
-        # Paste contract address → show buy/sell buttons
+        # Paste address → detect token/wallet → show buttons
         self.app.add_handler(MessageHandler(
             filters.TEXT & ~filters.COMMAND & filters.Regex(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$'),
             self.paste_contract_handler
@@ -666,10 +668,10 @@ class PumpFunBot:
                 # Get default buy percentage
                 default_pct = user_tracks.get("_default_pct", 10)
                 
-                # Get active wallets
+                # Get active creator-tracked wallets
                 active_wallets = [
                     w for w, info in user_tracks.items()
-                    if w != "_default_pct" and info.get("active")
+                    if w != "_default_pct" and info.get("active") and info.get("type") != "trader"
                 ]
                 
                 if not active_wallets:
@@ -752,11 +754,157 @@ class PumpFunBot:
                 await asyncio.sleep(10)
 
     # ═══════════════════════════════════════════════════════════════
+    # Trader Tracker (Copy-Buy on Wallet Purchases)
+    # ═══════════════════════════════════════════════════════════════
+
+    async def trader_tracker(self, user_id: int):
+        """Background task that monitors a wallet for new token holdings and copy-buys.
+        
+        Strategy: Poll the wallet's token accounts via Solana RPC every 3s.
+        When a new pump.fun token appears that wasn't there before → copy-buy.
+        """
+        logger.info(f"Starting trader tracker for user {user_id}")
+        
+        # Track which mints the tracked wallets already hold (to detect new buys)
+        wallet_holdings: dict = {}  # wallet -> set of mint addresses
+        
+        while True:
+            try:
+                trackers = load_json(TRACKERS_FILE)
+                user_tracks = trackers.get(str(user_id), {})
+                
+                # Get default buy percentage
+                default_pct = user_tracks.get("_default_pct", 10)
+                
+                # Get active trader-tracked wallets
+                trader_wallets = [
+                    w for w, info in user_tracks.items()
+                    if w != "_default_pct" and info.get("active") and info.get("type") == "trader"
+                ]
+                
+                if not trader_wallets:
+                    await asyncio.sleep(10)
+                    continue
+                
+                client = self.get_client(user_id)
+                if not client:
+                    await asyncio.sleep(10)
+                    continue
+                
+                # For each tracked wallet, check its token accounts
+                for wallet in trader_wallets:
+                    try:
+                        # Get all token accounts for this wallet
+                        session = await client._get_session()
+                        payload = {
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "method": "getTokenAccountsByOwner",
+                            "params": [
+                                wallet,
+                                {"programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"},
+                                {"encoding": "jsonParsed", "minContextSlot": 0}
+                            ]
+                        }
+                        async with session.post(client.rpc_url, json=payload) as resp:
+                            result = await resp.json()
+                        
+                        if "error" in result:
+                            logger.debug(f"RPC error for wallet {wallet[:8]}: {result['error']}")
+                            continue
+                        
+                        # Extract mint addresses
+                        current_mints = set()
+                        for account in result.get("result", {}).get("value", []):
+                            try:
+                                mint = account["account"]["data"]["parsed"]["info"]["mint"]
+                                current_mints.add(mint)
+                            except (KeyError, TypeError):
+                                continue
+                        
+                        # Initialize if first run
+                        if wallet not in wallet_holdings:
+                            wallet_holdings[wallet] = current_mints
+                            continue
+                        
+                        # Find new mints (bought since last check)
+                        previous_mints = wallet_holdings[wallet]
+                        new_mints = current_mints - previous_mints
+                        
+                        # Update holdings
+                        wallet_holdings[wallet] = current_mints
+                        
+                        # Copy-buy each new mint
+                        for mint in new_mints:
+                            try:
+                                # Verify it's a pump.fun token by checking bonding curve
+                                curve = await client.fetch_bonding_curve(mint)
+                                if curve.complete:
+                                    continue  # Skip graduated tokens
+                                
+                                balance = await client.get_balance()
+                                amount_sol = balance * (default_pct / 100)
+                                
+                                if amount_sol < 0.001:
+                                    logger.info(f"Balance too low for copy-buy: {balance}")
+                                    continue
+                                
+                                logger.info(
+                                    f"Copy-buying {mint[:8]}... from trader {wallet[:8]}"
+                                )
+                                
+                                tx = await client.buy_token(mint, amount_sol)
+                                
+                                # Save position
+                                positions = load_json(POSITIONS_FILE)
+                                pos_id = f"{user_id}_{mint}_{int(datetime.utcnow().timestamp())}"
+                                positions[pos_id] = {
+                                    "user_id": user_id,
+                                    "mint": mint,
+                                    "entry_sol": amount_sol,
+                                    "token_amount": 0,
+                                    "bought_at": datetime.utcnow().isoformat(),
+                                    "tx": tx,
+                                    "auto_buy": True,
+                                    "copy_trade": True,
+                                    "trader_wallet": wallet,
+                                }
+                                save_json(POSITIONS_FILE, positions)
+                                
+                                # Notify user
+                                await self.app.bot.send_message(
+                                    chat_id=user_id,
+                                    text=(
+                                        f"📋 <b>Copy-Buy Triggered!</b>\n\n"
+                                        f"Tracked trader bought a new token!\n\n"
+                                        f"Mint: <code>{mint[:20]}...</code>\n"
+                                        f"Trader: <code>{wallet[:20]}...</code>\n"
+                                        f"Spent: {amount_sol:.4f} SOL ({default_pct}%)\n"
+                                        f"TX: <code>{tx}</code>"
+                                    ),
+                                    parse_mode="HTML"
+                                )
+                            except Exception as e:
+                                logger.error(f"Copy-buy failed for {mint[:8]}: {e}")
+                    
+                    except Exception as e:
+                        logger.error(f"Error checking wallet {wallet[:8]}: {e}")
+                
+                # Poll every 3 seconds
+                await asyncio.sleep(3)
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Trader tracker error: {e}")
+                await asyncio.sleep(10)
+
+    # ═══════════════════════════════════════════════════════════════
     # Paste Contract → Buy/Sell Grid
     # ═══════════════════════════════════════════════════════════════
 
     async def paste_contract_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """When user pastes a contract address, show buy/sell grid buttons."""
+        """When user pastes an address, detect if token or wallet and show appropriate buttons."""
         text = update.message.text.strip()
         
         # Validate it's a Solana pubkey
@@ -773,46 +921,134 @@ class PumpFunBot:
             await update.message.reply_text("❌ No wallet imported. Use /import first.")
             return
         
-        # Fetch token info
+        # Try to fetch token info
         try:
             info = await client.get_token_info(text)
-            if not info:
-                await update.message.reply_text("❌ Token not found on pump.fun.")
-                return
-            
-            # Get balances
-            sol_balance = await client.get_balance()
-            token_balance = await client.get_token_balance(text)
-            
-            # Build grid buttons
-            keyboard = [
-                # Buy row
-                [
-                    InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{text}_25"),
-                    InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{text}_50"),
-                    InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{text}_75"),
-                    InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{text}_100"),
-                ],
-                # Sell row
-                [
-                    InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{text}_25"),
-                    InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{text}_50"),
-                    InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{text}_75"),
-                    InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{text}_100"),
-                ],
-            ]
-            
-            await update.message.reply_html(
-                f"🪙 <b>{info.symbol}</b> ({info.name})\n\n"
-                f"💰 Your SOL: <b>{sol_balance:.4f}</b>\n"
-                f"🪙 Your tokens: <b>{token_balance:.0f}</b>\n"
-                f"💲 Price: {info.price_sol:.8f} SOL\n"
-                f"📊 MCap: ${info.market_cap_usd:,.0f}\n\n"
-                f"Select action:",
-                reply_markup=InlineKeyboardMarkup(keyboard)
+        except:
+            info = None
+        
+        if info:
+            # It's a token → show buy/sell grid
+            await self._show_token_grid(update, client, info, text)
+        else:
+            # It's a wallet → show tracking options
+            await self._show_wallet_options(update, text)
+
+    async def _show_token_grid(self, update, client, info, mint):
+        """Show buy/sell grid for a token."""
+        sol_balance = await client.get_balance()
+        token_balance = await client.get_token_balance(mint)
+        
+        keyboard = [
+            [
+                InlineKeyboardButton("🟢 Buy 25%", callback_data=f"buy_{mint}_25"),
+                InlineKeyboardButton("🟢 Buy 50%", callback_data=f"buy_{mint}_50"),
+                InlineKeyboardButton("🟢 Buy 75%", callback_data=f"buy_{mint}_75"),
+                InlineKeyboardButton("🟢 Buy 100%", callback_data=f"buy_{mint}_100"),
+            ],
+            [
+                InlineKeyboardButton("🔴 Sell 25%", callback_data=f"sell_{mint}_25"),
+                InlineKeyboardButton("🔴 Sell 50%", callback_data=f"sell_{mint}_50"),
+                InlineKeyboardButton("🔴 Sell 75%", callback_data=f"sell_{mint}_75"),
+                InlineKeyboardButton("🔴 Sell 100%", callback_data=f"sell_{mint}_100"),
+            ],
+        ]
+        
+        await update.message.reply_html(
+            f"🪙 <b>{info.symbol}</b> ({info.name})\n\n"
+            f"💰 Your SOL: <b>{sol_balance:.4f}</b>\n"
+            f"🪙 Your tokens: <b>{token_balance:.0f}</b>\n"
+            f"💲 Price: {info.price_sol:.8f} SOL\n"
+            f"📊 MCap: ${info.market_cap_usd:,.0f}\n\n"
+            f"Select action:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    async def _show_wallet_options(self, update, wallet):
+        """Show tracking options for a wallet address."""
+        keyboard = [
+            [
+                InlineKeyboardButton("👁️ Creator Track", callback_data=f"track_creator_{wallet}"),
+                InlineKeyboardButton("📋 Trader Track", callback_data=f"track_trader_{wallet}"),
+            ],
+        ]
+        
+        await update.message.reply_html(
+            f"👛 <b>Wallet Detected</b>\n\n"
+            f"<code>{wallet[:20]}...</code>\n\n"
+            f"This is a wallet address, not a token.\n"
+            f"Choose tracking mode:\n\n"
+            f"<b>Creator Track:</b> Auto-buy when this wallet launches a new token\n"
+            f"<b>Trader Track:</b> Copy-buy when this wallet buys a token",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    async def track_creator_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle creator track button."""
+        query = update.callback_query
+        await query.answer()
+        
+        wallet = query.data.replace("track_creator_", "")
+        user_id = update.effective_user.id
+        
+        trackers = load_json(TRACKERS_FILE)
+        if str(user_id) not in trackers:
+            trackers[str(user_id)] = {}
+        
+        trackers[str(user_id)][wallet] = {
+            "added_at": datetime.utcnow().isoformat(),
+            "active": True,
+            "type": "creator",
+        }
+        save_json(TRACKERS_FILE, trackers)
+        
+        # Start tracker if not already running
+        if user_id not in self.tracker_tasks or self.tracker_tasks[user_id].done():
+            self.tracker_tasks[user_id] = asyncio.create_task(
+                self.wallet_tracker(user_id)
             )
-        except Exception as e:
-            await update.message.reply_text(f"❌ Error: {e}")
+        
+        await query.edit_message_text(
+            f"✅ <b>Creator Tracking Started</b>\n\n"
+            f"Wallet: <code>{wallet[:20]}...</code>\n\n"
+            f"Auto-buy when this wallet launches a new token.\n"
+            f"Use /setpct to set buy percentage.",
+            parse_mode="HTML"
+        )
+
+    async def track_trader_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle trader track button (copy-buy)."""
+        query = update.callback_query
+        await query.answer()
+        
+        wallet = query.data.replace("track_trader_", "")
+        user_id = update.effective_user.id
+        
+        trackers = load_json(TRACKERS_FILE)
+        if str(user_id) not in trackers:
+            trackers[str(user_id)] = {}
+        
+        trackers[str(user_id)][wallet] = {
+            "added_at": datetime.utcnow().isoformat(),
+            "active": True,
+            "type": "trader",
+        }
+        save_json(TRACKERS_FILE, trackers)
+        
+        # Start trader tracker if not already running
+        trader_key = f"trader_{user_id}"
+        if trader_key not in self.tracker_tasks or self.tracker_tasks[trader_key].done():
+            self.tracker_tasks[trader_key] = asyncio.create_task(
+                self.trader_tracker(user_id)
+            )
+        
+        await query.edit_message_text(
+            f"✅ <b>Trader Tracking Started</b>\n\n"
+            f"Wallet: <code>{wallet[:20]}...</code>\n\n"
+            f"I'll copy-buy whenever this wallet buys a token on pump.fun.\n"
+            f"Use /setpct to set buy percentage.",
+            parse_mode="HTML"
+        )
 
     async def buy_button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle buy percentage buttons (25/50/75/100%)."""
