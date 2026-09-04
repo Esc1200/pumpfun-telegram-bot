@@ -969,6 +969,9 @@ class PumpFunBot:
         await query.answer()
         
         mint = query.data.replace("fdv_sellcustom_", "")
+        # Handle fdv_sellcustom_{mint}_{amount} if present
+        if "_" in mint:
+            mint = mint.rsplit("_", 1)[0]
         user_id = update.effective_user.id
         
         context.user_data["awaiting_fdv_sell"] = mint
