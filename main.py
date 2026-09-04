@@ -1770,6 +1770,7 @@ class PumpFunBot:
             f"Use /setpct to set buy percentage.",
             parse_mode="HTML"
         )
+        return
 
     async def buy_button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle buy percentage buttons (25/50/75/100%)."""
