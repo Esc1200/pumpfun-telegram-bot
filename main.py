@@ -894,6 +894,7 @@ class PumpFunBot:
             "Minimum: $1,000",
             parse_mode="HTML"
         )
+        return
 
     async def fdv_buy_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle FDV alert buy button - asks for SOL amount."""
