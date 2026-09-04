@@ -379,36 +379,32 @@ class PumpFunClient:
         return await self._send_transaction(tx)
 
     async def get_token_info(self, mint: str) -> Optional[TokenInfo]:
-        """Fetch token info from pump.fun API."""
+        """Fetch token info from DexScreener API."""
         session = await self._get_session()
-        url = f"https://frontend-api-v3.pump.fun/coins/{mint}"
+        url = f"https://api.dexscreener.com/tokens/v1/solana/{mint}"
         try:
-            async with session.get(url, headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-            }) as resp:
-                if resp.status != 200:
-                    return None
+            async with session.get(url) as resp:
                 data = await resp.json()
-
-            virtual_sol = float(data.get("virtual_sol_reserves", 0))
-            virtual_token = float(data.get("virtual_token_reserves", 1))
-            price_sol = virtual_sol / virtual_token if virtual_token > 0 else 0
-
-            # FDV = price per token × total supply
-            # Every pumpfun token launches with 1B total supply at mint
-            sol_price_usd = await self._get_sol_price()
-            price_usd = price_sol * sol_price_usd
-            total_supply = 1_000_000_000  # Fixed 1B at mint
-            fdv_usd = price_usd * total_supply
-
+            
+            if not data or len(data) == 0:
+                return None
+            
+            # DexScreener returns an array of pairs; take the first (most liquid)
+            pair = data[0]
+            
+            price_sol = float(pair.get("priceNative", 0))  # SOL price
+            price_usd = float(pair.get("priceUsd", 0))     # USD price
+            fdv_usd = float(pair.get("fdv", 0))            # FDV in USD
+            market_cap = float(pair.get("marketCap", 0))    # Market cap
+            
             return TokenInfo(
                 mint=mint,
-                symbol=data.get("symbol", "???"),
-                name=data.get("name", "Unknown"),
-                creator=data.get("creator", "unknown"),
+                symbol=pair.get("baseToken", {}).get("symbol", "???"),
+                name=pair.get("baseToken", {}).get("name", "Unknown"),
+                creator=pair.get("owner", "unknown"),
                 price_sol=price_sol,
-                market_cap_usd=fdv_usd,
-                complete=data.get("complete", False),
+                market_cap_usd=fdv_usd if fdv_usd > 0 else market_cap,
+                complete=False,  # DexScreener doesn't have this field directly
             )
         except Exception as e:
             logger.warning(f"Failed to fetch token info for {mint}: {e}")
