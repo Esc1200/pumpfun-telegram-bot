@@ -769,8 +769,8 @@ class PumpFunBot:
                         except Exception as e:
                             logger.error(f"Auto-buy failed: {e}")
                 
-                # Poll every 5 seconds
-                await asyncio.sleep(5)
+                # Poll every 3 seconds
+                await asyncio.sleep(3)
                 
             except asyncio.CancelledError:
                 break
