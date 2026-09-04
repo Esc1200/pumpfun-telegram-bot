@@ -3326,3 +3326,11 @@ task: <Task pending name='Task-46' coro=<PumpFunBot.fdv_alert_tracker() running 
 2026-09-04 21:48:24,440 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
 2026-09-04 21:48:34,560 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
 2026-09-04 21:48:44,679 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:48:48,765 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
+2026-09-04 21:48:48,767 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2026-09-04 21:48:48,767 - telegram.ext.Application - INFO - Application.stop() complete
+2026-09-04 21:48:49,664 - __main__ - INFO - Bot started!
+2026-09-04 21:48:50,365 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getMe "HTTP/1.1 200 OK"
+2026-09-04 21:48:50,484 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/deleteWebhook "HTTP/1.1 200 OK"
+2026-09-04 21:48:50,489 - telegram.ext.Application - INFO - Application started
+2026-09-04 21:49:01,083 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8472009809:AAEVv9WNeIaB5Dsi-pXAhKsOkVTFSausXXI/getUpdates "HTTP/1.1 200 OK"
