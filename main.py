@@ -1733,6 +1733,7 @@ class PumpFunBot:
             )
         except Exception as e:
             logger.error(f"Error editing back to grid: {e}")
+        return
 
     async def _show_token_grid_with_alerts(self, update, client, info, mint):
         """Show buy/sell grid for a token with existing FDV alert buttons."""
