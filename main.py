@@ -1483,23 +1483,17 @@ class PumpFunBot:
                         current_fdv = info.market_cap_usd
                         alert_id = f"{mint}_{target_fdv}"
                         
-                        # Determine current side
-                        if current_fdv >= target_fdv:
-                            current_side = "above"
-                        else:
-                            current_side = "below"
-                        
-                        # Initialize state on first check
+                        # Determine current side and track state
+                        # On first check, just record the state without
+                        # triggering any notification (establish baseline).
+                        # This means if FDV is already above target,
+                        # it will take a DOWN cross followed by UP cross
+                        # to trigger the alert. This is the expected
+                        # bidirectional behavior: it won't fire unless
+                        # there's an actual crossing event.
                         if alert_id not in previous_state:
                             previous_state[alert_id] = current_side
-                            # If FDV was already above target when alert was set,
-                            # record this. On the NEXT check, we compare against
-                            # this 'above' state, so if FDV drops below and
-                            # comes back above, it will correctly detect the cross.
-                            # If FDV stays above, no cross occurs (correct behavior).
-                            # If FDV drops below, prev_side='above' -> current_side='below'
-                            # = DOWN cross (correctly detected).
-                            continue  # Skip first check to establish baseline
+                            continue
                         
                         prev_side = previous_state[alert_id]
                         
