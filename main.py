@@ -1446,7 +1446,6 @@ class PumpFunBot:
         # Track which alerts have been triggered and their initial state
         alerted_crossings: set = set()  # Tracks mint+target that have been notified
         previous_state: dict = {}  # mint+target -> "above" or "below"
-        initial_above: set = set()  # Track alerts where FDV was already above target at set time
         
         while True:
             try:
