@@ -917,6 +917,7 @@ class PumpFunBot:
             "Minimum: 0.001 SOL",
             parse_mode="HTML"
         )
+        return
 
     async def fdv_sell_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle FDV alert sell percentage buttons."""
@@ -962,6 +963,7 @@ class PumpFunBot:
                 return
         except Exception as e:
             await query.edit_message_text(f"❌ Sell failed: {e}")
+        return
 
     async def fdv_sellcustom_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle FDV alert custom sell button."""
@@ -980,6 +982,7 @@ class PumpFunBot:
             "Send token amount to sell (e.g. <code>5000</code>)",
             parse_mode="HTML"
         )
+        return
 
     async def specify_amount_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle custom SOL/percentage/FDV amount input."""
