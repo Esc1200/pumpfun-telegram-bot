@@ -1493,10 +1493,12 @@ class PumpFunBot:
                         if alert_id not in previous_state:
                             previous_state[alert_id] = current_side
                             # If FDV was already above target when alert was set,
-                            # mark it as already surpassed so the next crossing
-                            # (up through target) will trigger the notification
-                            if current_side == "above":
-                                initial_above.add(alert_id)
+                            # record this. On the NEXT check, we compare against
+                            # this 'above' state, so if FDV drops below and
+                            # comes back above, it will correctly detect the cross.
+                            # If FDV stays above, no cross occurs (correct behavior).
+                            # If FDV drops below, prev_side='above' -> current_side='below'
+                            # = DOWN cross (correctly detected).
                             continue  # Skip first check to establish baseline
                         
                         prev_side = previous_state[alert_id]
@@ -1514,10 +1516,6 @@ class PumpFunBot:
                         # Only notify once per crossing
                         if crossed and alert_id not in alerted_crossings:
                             alerted_crossings.add(alert_id)
-                            
-                            # If FDV was already above target when alert was set,
-                            # this UP cross means it went below then back above
-                            # (a valid crossing). Don't suppress it.
                             
                             # Build notification with Buy/Sell buttons
                             keyboard = [
