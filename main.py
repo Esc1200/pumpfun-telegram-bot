@@ -1446,6 +1446,7 @@ class PumpFunBot:
         # Track which alerts have been triggered and their initial state
         alerted_crossings: set = set()  # Tracks mint+target that have been notified
         previous_state: dict = {}  # mint+target -> "above" or "below"
+        initial_above: set = set()  # Track alerts where FDV was already above target at set time
         
         while True:
             try:
@@ -1491,6 +1492,11 @@ class PumpFunBot:
                         # Initialize state on first check
                         if alert_id not in previous_state:
                             previous_state[alert_id] = current_side
+                            # If FDV was already above target when alert was set,
+                            # mark it as already surpassed so the next crossing
+                            # (up through target) will trigger the notification
+                            if current_side == "above":
+                                initial_above.add(alert_id)
                             continue  # Skip first check to establish baseline
                         
                         prev_side = previous_state[alert_id]
@@ -1508,6 +1514,10 @@ class PumpFunBot:
                         # Only notify once per crossing
                         if crossed and alert_id not in alerted_crossings:
                             alerted_crossings.add(alert_id)
+                            
+                            # If FDV was already above target when alert was set,
+                            # this UP cross means it went below then back above
+                            # (a valid crossing). Don't suppress it.
                             
                             # Build notification with Buy/Sell buttons
                             keyboard = [
